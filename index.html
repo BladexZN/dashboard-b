@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Digital DC Dashboard Production</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/fJgCqFA.png" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+    <!-- SF Pro Font -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@aspect-ui/sf-pro-font@1.0.0/sf-pro.min.css" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        // Apple Blue System
+                        primary: "#007AFF",
+                        "primary-dark": "#0051D5",
+                        "primary-light": "#5AC8FA",
+
+                        // Apple Gray Scale
+                        "apple-gray": {
+                            50: "#F5F5F7",
+                            100: "#E8E8ED",
+                            200: "#D2D2D7",
+                            300: "#AEAEB2",
+                            400: "#8E8E93",
+                            500: "#636366",
+                            600: "#48484A",
+                            700: "#3A3A3C",
+                            800: "#2C2C2E",
+                            900: "#1C1C1E",
+                        },
+
+                        // Backgrounds
+                        "background-light": "#F5F5F7",
+                        "background-dark": "#000000",
+
+                        // Surfaces for glassmorphism
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1C1C1E",
+                        "surface-darker": "#141414",
+                        "surface-darkest": "#0A0A0A",
+                        "surface-input": "#0d0d0d",
+
+                        // Borders
+                        "border-light": "rgba(0, 0, 0, 0.06)",
+                        "border-dark": "rgba(255, 255, 255, 0.1)",
+
+                        // Text
+                        "text-light": "#1D1D1F",
+                        "text-dark": "#F5F5F7",
+                        "muted-light": "#86868B",
+                        "muted-dark": "#98989D",
+                    },
+                    fontFamily: {
+                        sans: ["SF Pro Display", "SF Pro Text", "-apple-system", "BlinkMacSystemFont", "Helvetica Neue", "Arial", "sans-serif"],
+                        display: ["SF Pro Display", "-apple-system", "BlinkMacSystemFont", "Helvetica Neue", "sans-serif"],
+                        mono: ["SF Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                        'sm': "0.5rem",
+                        'md': "0.875rem",
+                        'lg': "1rem",
+                        'xl': "1.25rem",
+                        '2xl': "1.5rem",
+                        '3xl': "2rem",
+                    },
+                    boxShadow: {
+                        'apple-sm': '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)',
+                        'apple': '0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.08)',
+                        'apple-lg': '0 10px 25px rgba(0, 0, 0, 0.1), 0 20px 48px rgba(0, 0, 0, 0.15)',
+                        'apple-glow': '0 0 40px rgba(0, 122, 255, 0.2)',
+                        'apple-inset': 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'fade-in-up': 'fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        'scale-up': 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        'slide-in-right': 'slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        'slide-in-left': 'slideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        scaleUp: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                        slideInRight: {
+                            '0%': { transform: 'translateX(100%)' },
+                            '100%': { transform: 'translateX(0)' },
+                        },
+                        slideInLeft: {
+                            '0%': { transform: 'translateX(-100%)' },
+                            '100%': { transform: 'translateX(0)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 20px rgba(0, 122, 255, 0.2)' },
+                            '50%': { boxShadow: '0 0 40px rgba(0, 122, 255, 0.4)' },
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        /* Scrollbar - Apple Style */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        /* Firefox scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
+
+        /* Base body */
+        body {
+            background-color: #000000;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Glassmorphism utility classes */
+        .glass {
+            background: rgba(28, 28, 30, 0.72);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-light {
+            background: rgba(38, 38, 40, 0.72);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .glass-darker {
+            background: rgba(18, 18, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        /* Apple-style focus ring */
+        .focus-ring:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.3);
+        }
+
+        /* Smooth transitions for interactive elements */
+        .apple-transition {
+            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        /* Apple-style button press effect */
+        .apple-press:active {
+            transform: scale(0.97);
+        }
+
+        /* Custom scrollbar for specific containers */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        /* Selection color - Apple Blue */
+        ::selection {
+            background: rgba(0, 122, 255, 0.3);
+            color: inherit;
+        }
+
+        /* Override Tailwind Forms plugin defaults for dark theme */
+        input, textarea, select {
+            background-color: rgba(28, 28, 30, 0.72) !important;
+            color: #F5F5F7 !important;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #98989D !important;
+        }
+        input:focus, textarea:focus, select:focus {
+            background-color: rgba(28, 28, 30, 0.85) !important;
+        }
+        /* Checkbox and radio overrides */
+        input[type="checkbox"], input[type="radio"] {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        input[type="checkbox"]:checked, input[type="radio"]:checked {
+            background-color: #007AFF !important;
+            border-color: #007AFF !important;
+        }
+        /* Select dropdown options */
+        option {
+            background-color: #1C1C1E !important;
+            color: #F5F5F7 !important;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "framer-motion": "https://esm.sh/framer-motion@^11"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-sans h-screen flex overflow-hidden">
+    <div id="root" class="h-full w-full"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
