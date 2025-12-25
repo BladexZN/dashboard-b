@@ -211,11 +211,11 @@ const Header: React.FC<HeaderProps> = ({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 transition={springConfig.snappy}
-                className="absolute right-0 top-full mt-2 w-80 glass-darker border border-white/10 rounded-2xl shadow-apple-lg z-50 overflow-hidden"
+                className="absolute right-0 top-full mt-2 w-72 glass-darker border border-white/10 rounded-xl shadow-apple-lg z-50 overflow-hidden"
               >
-                <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
-                  <h3 className="text-sm font-bold text-white flex items-center">
-                    <span className="material-icons-round text-primary mr-2 text-base">notifications</span>
+                <div className="px-3 py-2 border-b border-white/10 flex justify-between items-center bg-black/40">
+                  <h3 className="font-semibold text-white text-xs flex items-center">
+                    <span className="material-icons-round text-primary mr-1.5 text-sm">notifications</span>
                     Notificaciones
                   </h3>
                   {unreadCount > 0 && (
@@ -223,9 +223,9 @@ const Header: React.FC<HeaderProps> = ({
                       whileHover={buttonHover}
                       whileTap={buttonTap}
                       onClick={(e) => { e.stopPropagation(); onMarkAllRead(); }}
-                      className="text-[10px] text-primary hover:text-primary-dark font-bold uppercase tracking-wide"
+                      className="text-[9px] text-primary hover:text-primary-dark font-bold uppercase tracking-wide"
                     >
-                      Marcar todo
+                      Marcar todas
                     </motion.button>
                   )}
                 </div>
@@ -235,48 +235,42 @@ const Header: React.FC<HeaderProps> = ({
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="p-8 text-center"
+                      className="p-4 text-center"
                     >
-                      <span className="material-icons-round text-4xl text-gray-700 mb-2">inbox</span>
-                      <p className="text-sm text-muted-dark">Sin notificaciones</p>
-                      <p className="text-[10px] text-gray-600 mt-1">Las notificaciones aparecerán aquí</p>
+                      <span className="material-icons-round text-2xl text-gray-700 mb-1">inbox</span>
+                      <p className="text-xs text-muted-dark">Sin notificaciones</p>
                     </motion.div>
                   ) : (
-                    <div className="divide-y divide-white/5">
-                      {notifications.map((n, idx) => (
-                        <motion.div
-                          key={n.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ ...springConfig.snappy, delay: idx * 0.02 }}
-                          onClick={() => handleNotificationClick(n.id, n.solicitud_id)}
-                          className={`p-4 cursor-pointer hover:bg-white/5 apple-transition ${!n.is_read ? 'bg-primary/5' : ''}`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <h4 className={`text-sm ${!n.is_read ? 'font-bold text-white' : 'font-medium text-gray-400'}`}>
+                    notifications.map((n, idx) => (
+                      <motion.div
+                        key={n.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.15, delay: idx * 0.01 }}
+                        onClick={() => handleNotificationClick(n.id, n.solicitud_id)}
+                        className={`px-2.5 py-2 border-b border-white/5 cursor-pointer hover:bg-white/5 apple-transition ${!n.is_read ? 'bg-primary/5' : ''}`}
+                      >
+                        <div className="flex items-start">
+                          <span className="material-icons-round text-sm text-primary" style={{ marginRight: '-2px' }}>
+                            {n.tipo === 'correccion' ? 'error_outline' : n.tipo === 'solicitud_lista' ? 'check_circle' : 'notifications'}
+                          </span>
+                          <div className="flex-1">
+                            <p className={`text-[11px] leading-tight ${!n.is_read ? 'text-white font-medium' : 'text-gray-400'}`}>
                               {n.titulo}
-                            </h4>
-                            <span className="text-[10px] text-muted-dark whitespace-nowrap ml-2">{getRelativeTime(n.created_at)}</span>
+                            </p>
+                            <p className="text-[10px] text-muted-dark leading-tight mt-0.5 line-clamp-2">{n.mensaje}</p>
+                            <span className="text-[9px] text-gray-500">{getRelativeTime(n.created_at)}</span>
                           </div>
-                          <p className="text-xs text-muted-dark mt-1 line-clamp-2">{n.mensaje}</p>
-                          {!n.is_read && (
-                            <div className="mt-2 flex justify-end">
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="w-2 h-2 rounded-full bg-primary"
-                              />
-                            </div>
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
+                          {!n.is_read && <span className="w-1.5 h-1.5 bg-primary rounded-full ml-1 mt-1" />}
+                        </div>
+                      </motion.div>
+                    ))
                   )}
                 </div>
                 {notifications.length > 0 && (
-                  <div className="p-3 border-t border-white/10 bg-black/40 text-center">
-                    <span className="text-[10px] text-gray-500">
-                      Mostrando últimas {notifications.length} notificaciones
+                  <div className="px-3 py-1.5 border-t border-white/10 bg-black/40 text-center">
+                    <span className="text-[9px] text-gray-500">
+                      Últimas {notifications.length} notificaciones
                     </span>
                   </div>
                 )}
