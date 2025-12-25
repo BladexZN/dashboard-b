@@ -169,15 +169,17 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
                     <input className="rounded border-white/20 bg-white/5 text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer" type="checkbox"/>
                   </td>
                   <td className="px-6 py-4 font-bold text-white">{req.id}</td>
-                  <td className="px-6 py-4 text-gray-300">
-                    <div className="flex items-center">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] mr-2.5 font-bold ${req.clientColor}`}>
+                  <td className="px-6 py-4 text-gray-300 max-w-[200px]">
+                    <div className="flex items-center min-w-0">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] mr-2.5 font-bold flex-shrink-0 ${req.clientColor}`}>
                         {req.clientInitials}
                       </div>
-                      {req.client}
+                      <span className="truncate" title={req.client}>{req.client}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-300">{req.product}</td>
+                  <td className="px-6 py-4 text-gray-300 max-w-[200px]">
+                    <span className="truncate block" title={req.product}>{req.product}</span>
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold border
                       ${req.type === 'Variante' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : ''}
@@ -232,10 +234,10 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
                       )}
                     </AnimatePresence>
                   </td>
-                  <td className="px-6 py-4 text-gray-400">
-                    <div className="flex items-center">
-                      <div className="w-6 h-6 rounded-full bg-gray-700 text-[9px] flex items-center justify-center text-white mr-2 font-bold">{req.advisorInitials}</div>
-                      {req.advisor}
+                  <td className="px-6 py-4 text-gray-400 max-w-[150px]">
+                    <div className="flex items-center min-w-0">
+                      <div className="w-6 h-6 rounded-full bg-gray-700 text-[9px] flex items-center justify-center text-white mr-2 font-bold flex-shrink-0">{req.advisorInitials}</div>
+                      <span className="truncate" title={req.advisor}>{req.advisor}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-muted-dark text-xs">{req.date}</td>

@@ -225,8 +225,8 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                               )}
                             </div>
 
-                            <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none">{req.product}</h4>
-                            <p className="text-sm text-muted-dark mb-5 truncate select-none">{req.client}</p>
+                            <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none truncate" title={req.product}>{req.product}</h4>
+                            <p className="text-sm text-muted-dark mb-5 truncate select-none" title={req.client}>{req.client}</p>
 
                             <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
                               <div className="flex items-center">

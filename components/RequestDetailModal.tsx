@@ -465,11 +465,11 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
                           className="w-full glass border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-primary/50 focus:outline-none apple-transition"
                         />
                       ) : (
-                        <div className="flex items-center">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] mr-2 font-bold ${details.clientColor}`}>
+                        <div className="flex items-center min-w-0">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] mr-2 font-bold flex-shrink-0 ${details.clientColor}`}>
                             {details.clientInitials}
                           </div>
-                          <span className="text-sm font-medium text-white">{details.cliente}</span>
+                          <span className="text-sm font-medium text-white truncate" title={details.cliente}>{details.cliente}</span>
                         </div>
                       )}
                     </div>
@@ -648,8 +648,8 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
                                   }}
                                 />
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-white font-medium truncate">{logo.name}</p>
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                <p className="text-xs text-white font-medium truncate" title={logo.name}>{logo.name}</p>
                                 <p className="text-[10px] text-muted-dark">{formatFileSize(logo.size)}</p>
                               </div>
                             </div>
