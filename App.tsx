@@ -285,7 +285,7 @@ const App: React.FC = () => {
   const fetchDeletedData = useCallback(async () => {
     if (!session) return;
     try {
-      const { data } = await supabase.from('solicitudes').select(`*, asesor:usuarios!asesor_id(id, nombre), deleted_by_user:usuarios!deleted_by(nombre)`).eq('is_deleted', true).order('deleted_at', { ascending: false });
+      const { data } = await supabase.from('solicitudes').select(`*, asesor:usuarios!asesor_id(id, nombre), deleted_by_user:usuarios!deleted_by(nombre)`).eq('is_deleted', true).order('deleted_at', { ascending: false }).limit(100);
       if (data) {
         const mappedDeleted = data.map((dbReq: any) => ({
           id: dbReq.folio ? `#REQ-${dbReq.folio}` : 'PENDING',
@@ -313,7 +313,7 @@ const App: React.FC = () => {
     setDataError(null);
 
     try {
-      const { data: usersData, error: usersError } = await supabase.from('usuarios').select('*');
+      const { data: usersData, error: usersError } = await supabase.from('usuarios').select('*').limit(200);
       if (usersError) throw usersError;
 
       const userMap = (usersData || []).reduce((acc, user) => {
@@ -340,7 +340,7 @@ const App: React.FC = () => {
       const { data: solicitudesData, error: reqError } = await query;
       if (reqError) throw reqError;
 
-      const { data: statusData, error: statusError } = await supabase.from('estados_solicitud').select('*').order('timestamp', { ascending: true });
+      const { data: statusData, error: statusError } = await supabase.from('estados_solicitud').select('*').order('timestamp', { ascending: true }).limit(5000);
       if (statusError) throw statusError;
 
       const latestStatusMap: Record<string, RequestStatus> = {};

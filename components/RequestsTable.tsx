@@ -161,7 +161,7 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
                   key={req.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ ...springConfig.snappy, delay: idx * 0.02 }}
+                  transition={{ ...springConfig.snappy, delay: idx < 20 ? idx * 0.015 : 0.3 }}
                   className="hover:bg-white/5 apple-transition group cursor-pointer"
                   onClick={() => onRowClick(req)}
                 >

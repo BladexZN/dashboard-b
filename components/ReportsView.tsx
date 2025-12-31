@@ -116,13 +116,21 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
 
   const trendData = useMemo(() => {
     const dailyData: Record<string, { date: string; creadas: number; entregadas: number }> = {};
+
+    // Pre-compute delivered events map for O(1) lookup instead of O(n) find
+    const deliveredMap = new Map<string, AuditLogEntry>(
+      history
+        .filter(h => h.status === 'Entregado')
+        .map(h => [h.solicitudId, h])
+    );
+
     processedData.forEach(r => {
       const day = new Date(r.rawDate).toLocaleDateString('en-CA');
       if (!dailyData[day]) dailyData[day] = { date: day, creadas: 0, entregadas: 0 };
       dailyData[day].creadas++;
     });
     processedData.forEach(r => {
-      const deliveredHistory = history.find(h => h.solicitudId === r.uuid && h.status === 'Entregado');
+      const deliveredHistory = deliveredMap.get(r.uuid);
       if (deliveredHistory) {
         const day = new Date(deliveredHistory.timestamp).toLocaleDateString('en-CA');
         if (!dailyData[day]) dailyData[day] = { date: day, creadas: 0, entregadas: 0 };
@@ -365,7 +373,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
                   transition={{ delay: i * 0.05 }}
                   className="hover:bg-white/5 apple-transition"
                 >
-                  <td className="px-5 py-2.5 text-white font-medium truncate max-w-[150px]">{s.name}</td>
+                  <td className="px-5 py-2.5 text-white font-medium truncate max-w-[100px] sm:max-w-[150px] lg:max-w-[200px]">{s.name}</td>
                   <td className="px-5 py-2.5 text-right text-gray-300">{s.total}</td>
                   <td className="px-5 py-2.5 text-right text-primary font-bold">{formatDuration(s.avgToListo)}</td>
                 </motion.tr>
@@ -483,7 +491,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
                   >
                     <td className="px-5 py-3  text-primary font-bold">{r.id}</td>
                     <td className="px-5 py-3 text-white font-medium">{r.client}</td>
-                    <td className="px-5 py-3 text-gray-300 truncate max-w-[150px]">{r.product}</td>
+                    <td className="px-5 py-3 text-gray-300 truncate max-w-[100px] sm:max-w-[150px] lg:max-w-[200px]">{r.product}</td>
                     <td className="px-5 py-3 text-muted-dark">{r.type}</td>
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border ${r.status === 'Listo' ? 'bg-primary/10 text-primary border-primary/20' : r.status === 'Corrección' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-white/5 text-gray-400 border-white/10'}`}>{r.status}</span>

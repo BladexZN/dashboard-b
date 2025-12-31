@@ -185,7 +185,7 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ ...springConfig.snappy, delay: idx * 0.02 }}
+                          transition={{ ...springConfig.snappy, delay: idx < 20 ? idx * 0.015 : 0.3 }}
                           whileHover={{ y: -4, scale: 1.02 }}
                           draggable
                           onDragStart={(e) => handleDragStart(e as any, req.id)}
@@ -225,7 +225,7 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                               )}
                             </div>
 
-                            <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none truncate" title={req.product}>{req.product}</h4>
+                            <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none line-clamp-2" title={req.product}>{req.product}</h4>
                             <p className="text-sm text-muted-dark mb-5 truncate select-none" title={req.client}>{req.client}</p>
 
                             <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">

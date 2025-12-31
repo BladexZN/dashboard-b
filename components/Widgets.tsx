@@ -200,7 +200,7 @@ const Widgets: React.FC<WidgetsProps> = ({ requests, loading }) => {
                   className="flex items-center text-xs"
                 >
                   <span className="w-2.5 h-2.5 rounded-full mr-2 flex-shrink-0" style={{ backgroundColor: prod.color }}></span>
-                  <span className="text-gray-400 truncate max-w-[120px]" title={prod.name}>{prod.name}</span>
+                  <span className="text-gray-400 truncate max-w-[80px] sm:max-w-[120px] lg:max-w-[150px]" title={prod.name}>{prod.name}</span>
                 </motion.div>
               ))}
             </div>
