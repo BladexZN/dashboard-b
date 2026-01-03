@@ -12,7 +12,6 @@ interface WidgetsProps {
 const COLORS = ['#007AFF', '#5AC8FA', '#A855F7', '#F97316', '#EF4444', '#14B8A6'];
 
 const Widgets: React.FC<WidgetsProps> = ({ requests, loading }) => {
-
   const advisorStats = useMemo(() => {
     const counts: Record<string, number> = {};
     requests.forEach(r => {

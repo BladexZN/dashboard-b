@@ -4,7 +4,15 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, Cell, PieChart, Pie
 } from 'recharts';
-import { RequestData, AuditLogEntry, DateFilter } from '../types';
+import { RequestData, AuditLogEntry, DateFilter, BoardNumber } from '../types';
+
+// Producer names mapping
+const PRODUCER_NAMES: Record<BoardNumber, string> = {
+  1: 'Carlos',
+  2: 'Moises',
+  3: 'Angel',
+  4: 'Giovany'
+};
 import { springConfig, buttonTap, buttonHover } from '../lib/animations';
 
 interface ReportsViewProps {
@@ -171,6 +179,59 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
     return Object.entries(groups)
       .map(([name, stat]) => ({ name, total: stat.total, percentCorrection: (stat.corrections / stat.total) * 100, avgToListo: stat.countToListo > 0 ? stat.timeToListoSum / stat.countToListo : 0 }))
       .sort((a, b) => b.total - a.total).slice(0, 5);
+  }, [processedData]);
+
+  // Producer (video editors) performance stats
+  const producerStats = useMemo(() => {
+    // Only count completed videos (Listo or Entregado) with board_number
+    const completedVideos = processedData.filter(r =>
+      (r.status === 'Listo' || r.status === 'Entregado') && r.board_number
+    );
+
+    const stats = ([1, 2, 3, 4] as BoardNumber[]).map(board => {
+      const producerVideos = completedVideos.filter(r => r.board_number === board);
+
+      // Calculate delivery times in days
+      const deliveryTimes = producerVideos.map(r => {
+        if (r.timeToDeliver !== null) {
+          return r.timeToDeliver / 24; // Convert hours to days
+        }
+        return null;
+      }).filter((d): d is number => d !== null);
+
+      const avgDays = deliveryTimes.length > 0
+        ? deliveryTimes.reduce((a, b) => a + b, 0) / deliveryTimes.length
+        : 0;
+
+      // Categorize by speed (in days)
+      const under24h = deliveryTimes.filter(d => d < 1).length;
+      const under7d = deliveryTimes.filter(d => d >= 1 && d <= 7).length;
+      const over7d = deliveryTimes.filter(d => d > 7).length;
+
+      return {
+        board,
+        name: PRODUCER_NAMES[board],
+        total: producerVideos.length,
+        avgDays,
+        under24h,
+        under7d,
+        over7d
+      };
+    });
+
+    const totalVideos = completedVideos.length;
+    const allDeliveryTimes = completedVideos
+      .map(r => r.timeToDeliver !== null ? r.timeToDeliver / 24 : null)
+      .filter((d): d is number => d !== null);
+    const avgOverall = allDeliveryTimes.length > 0
+      ? allDeliveryTimes.reduce((a, b) => a + b, 0) / allDeliveryTimes.length
+      : 0;
+
+    return {
+      producers: stats,
+      total: totalVideos,
+      avgOverall
+    };
   }, [processedData]);
 
   const filteredDetailedData = useMemo(() => {
@@ -421,6 +482,80 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
           </table>
         </motion.div>
       </div>
+
+      {/* PRODUCER PERFORMANCE TABLE */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springConfig.gentle, delay: 0.38 }}
+        className="glass border border-white/10 rounded-2xl overflow-hidden shadow-apple"
+      >
+        <div className="px-5 py-3 border-b border-white/10 bg-black/20 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white">Rendimiento Productores</h3>
+          <span className="text-xs text-muted-dark">
+            {producerStats.total} videos completados • {producerStats.avgOverall.toFixed(1)}d promedio
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="text-muted-dark border-b border-white/10">
+                <th className="px-5 py-3 font-bold uppercase tracking-wider">Productor</th>
+                <th className="px-5 py-3 font-bold uppercase tracking-wider text-right">Videos</th>
+                <th className="px-5 py-3 font-bold uppercase tracking-wider text-right">Prom. Entrega</th>
+                <th className="px-5 py-3 font-bold uppercase tracking-wider text-center">Rápidos (&lt;24h)</th>
+                <th className="px-5 py-3 font-bold uppercase tracking-wider text-center">Normal (1-7d)</th>
+                <th className="px-5 py-3 font-bold uppercase tracking-wider text-center">Lentos (&gt;7d)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {loading ? Array.from({length: 4}).map((_, i) => (
+                <tr key={i}><td colSpan={6} className="px-5 py-3"><div className="h-3 w-full bg-white/5 rounded-lg animate-pulse"></div></td></tr>
+              )) : producerStats.producers.map((p, i) => (
+                <motion.tr
+                  key={p.board}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="hover:bg-white/5 apple-transition"
+                >
+                  <td className="px-5 py-2.5 text-white font-medium">{p.name}</td>
+                  <td className="px-5 py-2.5 text-right text-primary font-bold">{p.total}</td>
+                  <td className="px-5 py-2.5 text-right text-gray-300">
+                    {p.total > 0 ? `${p.avgDays.toFixed(1)}d` : '—'}
+                  </td>
+                  <td className="px-5 py-2.5 text-center">
+                    {p.under24h > 0 ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                        {p.under24h}
+                      </span>
+                    ) : <span className="text-muted-dark/50">-</span>}
+                  </td>
+                  <td className="px-5 py-2.5 text-center">
+                    {p.under7d > 0 ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                        {p.under7d}
+                      </span>
+                    ) : <span className="text-muted-dark/50">-</span>}
+                  </td>
+                  <td className="px-5 py-2.5 text-center">
+                    {p.over7d > 0 ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                        {p.over7d}
+                      </span>
+                    ) : <span className="text-muted-dark/50">-</span>}
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {producerStats.total === 0 && !loading && (
+          <div className="p-6 text-center text-muted-dark text-xs">
+            No hay videos completados en este período
+          </div>
+        )}
+      </motion.div>
 
       {/* DETAILED TABLE */}
       <motion.div
