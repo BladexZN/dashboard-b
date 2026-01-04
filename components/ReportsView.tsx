@@ -22,11 +22,14 @@ interface ReportsViewProps {
   loading?: boolean;
 }
 
+type ProducerDateFilter = 'today' | '7days' | '14days' | '1month';
+
 const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter, loading }) => {
   const [filterAdvisor, setFilterAdvisor] = useState('Todos');
   const [filterType, setFilterType] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
+  const [producerDateFilter, setProducerDateFilter] = useState<ProducerDateFilter>('1month');
 
   const calculateDuration = (start: string, end: string) => {
     const diff = new Date(end).getTime() - new Date(start).getTime();
@@ -42,6 +45,31 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
     const days = Math.floor(hours / 24);
     const remHours = Math.round(hours % 24);
     return `${days}d ${remHours}h`;
+  };
+
+  const getProducerDateRange = (filter: ProducerDateFilter) => {
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    switch (filter) {
+      case 'today':
+        // start ya está configurado para hoy
+        break;
+      case '7days':
+        start.setDate(start.getDate() - 7);
+        break;
+      case '14days':
+        start.setDate(start.getDate() - 14);
+        break;
+      case '1month':
+        start.setMonth(start.getMonth() - 1);
+        break;
+    }
+
+    return { start, end: now };
   };
 
   const processedData = useMemo(() => {
@@ -183,9 +211,16 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
 
   // Producer (video editors) performance stats
   const producerStats = useMemo(() => {
+    // Filter by producer date range first
+    const { start, end } = getProducerDateRange(producerDateFilter);
+    const filteredByDate = processedData.filter(r => {
+      const requestDate = new Date(r.rawDate);
+      return requestDate >= start && requestDate <= end;
+    });
+
     // Count ALL completed videos (Listo or Entregado), regardless of board_number
     // Videos without board_number will appear in "Sin Asignar" category
-    const completedVideos = processedData.filter(r =>
+    const completedVideos = filteredByDate.filter(r =>
       r.status === 'Listo' || r.status === 'Entregado'
     );
 
@@ -260,7 +295,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
       total: totalVideos,
       avgOverall
     };
-  }, [processedData]);
+  }, [processedData, producerDateFilter]);
 
   const filteredDetailedData = useMemo(() => {
     return processedData.filter(r => {
@@ -518,11 +553,35 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
         transition={{ ...springConfig.gentle, delay: 0.38 }}
         className="glass border border-white/10 rounded-2xl overflow-hidden shadow-apple"
       >
-        <div className="px-5 py-3 border-b border-white/10 bg-black/20 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white">Rendimiento Productores</h3>
-          <span className="text-xs text-muted-dark">
-            {producerStats.total} videos completados • {producerStats.avgOverall.toFixed(1)}d promedio
-          </span>
+        <div className="px-5 py-3 border-b border-white/10 bg-black/20">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-white">Rendimiento Productores</h3>
+            <span className="text-xs text-muted-dark">
+              {producerStats.total} videos completados • {producerStats.avgOverall.toFixed(1)}d promedio
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {([
+              { key: 'today', label: 'Hoy' },
+              { key: '7days', label: '7 días' },
+              { key: '14days', label: '14 días' },
+              { key: '1month', label: '1 mes' }
+            ] as const).map(({ key, label }) => (
+              <motion.button
+                key={key}
+                whileHover={buttonHover}
+                whileTap={buttonTap}
+                onClick={() => setProducerDateFilter(key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold apple-transition ${
+                  producerDateFilter === key
+                    ? 'bg-primary text-white shadow-apple-glow'
+                    : 'bg-white/5 text-muted-dark hover:bg-white/10 hover:text-white border border-white/10'
+                }`}
+              >
+                {label}
+              </motion.button>
+            ))}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
