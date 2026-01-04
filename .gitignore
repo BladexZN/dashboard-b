@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Environment variables - NEVER commit real credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test files
+*.test.js
+test-*.js

@@ -183,9 +183,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
 
   // Producer (video editors) performance stats
   const producerStats = useMemo(() => {
-    // Only count completed videos (Listo or Entregado) with board_number
+    // Count ALL completed videos (Listo or Entregado), regardless of board_number
+    // Videos without board_number will appear in "Sin Asignar" category
     const completedVideos = processedData.filter(r =>
-      (r.status === 'Listo' || r.status === 'Entregado') && r.board_number
+      r.status === 'Listo' || r.status === 'Entregado'
     );
 
     const stats = ([1, 2, 3, 4] as BoardNumber[]).map(board => {

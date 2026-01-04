@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabaseClient';
+import './lib/security'; // Initialize security protections
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Login from './components/Login';
@@ -18,7 +20,7 @@ import { RequestData, RequestStatus, Page, AuditLogEntry, Notification, DateFilt
 
 const App: React.FC = () => {
   // --- AUTH STATE ---
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [crossLoginStatus, setCrossLoginStatus] = useState<'idle' | 'validating' | 'error'>('idle');
@@ -103,11 +105,9 @@ const App: React.FC = () => {
       setCrossLoginStatus('validating');
 
       try {
-        console.log('Cross-login: Token found, validating...', token.substring(0, 20) + '...');
-
         // Call validation Edge Function
         const response = await fetch(
-          'https://jiorvtskypelmdpffddc.supabase.co/functions/v1/validate-cross-project-token',
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-cross-project-token`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -115,9 +115,7 @@ const App: React.FC = () => {
           }
         );
 
-        console.log('Response status:', response.status);
         const responseText = await response.text();
-        console.log('Response text:', responseText);
 
         let data;
         try {

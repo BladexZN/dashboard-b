@@ -179,7 +179,24 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       return;
     }
 
+    // Validate required fields
+    if (!formData.client.trim()) {
+      alert('El nombre del cliente es requerido.');
+      return;
+    }
+
+    if (!formData.product.trim()) {
+      alert('El servicio/producto es requerido.');
+      return;
+    }
+
+    // Validate URLs before submitting
     const finalLinks = formData.downloadable_links.filter(link => link.trim() !== '');
+    const invalidUrls = finalLinks.filter(link => !isValidUrl(link));
+    if (invalidUrls.length > 0) {
+      alert(`Las siguientes URLs no son válidas:\n${invalidUrls.join('\n')}\n\nPor favor corrígelas antes de guardar.`);
+      return;
+    }
 
     onSave({
       ...formData,

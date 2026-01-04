@@ -47,6 +47,7 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
   const [editMode, setEditMode] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -212,7 +213,9 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
     if (!files || files.length === 0) return;
 
     setUploadingLogo(true);
+    setUploadError(null);
     const newLogos: LogoFile[] = [];
+    const failedUploads: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -226,7 +229,7 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
           .upload(filePath, file);
 
         if (error) {
-          console.error('Logo upload error:', error);
+          failedUploads.push(`${file.name}: ${error.message}`);
           continue;
         }
 
@@ -241,13 +244,20 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
           size: file.size,
           uploadedAt: new Date().toISOString()
         });
-      } catch (err) {
-        console.error('Logo upload error:', err);
+      } catch (err: any) {
+        failedUploads.push(`${file.name}: ${err.message || 'Error desconocido'}`);
       }
     }
 
     if (newLogos.length > 0) {
       handleFieldChange('logos', [...details.logos, ...newLogos]);
+    }
+
+    // Show error if any uploads failed
+    if (failedUploads.length > 0) {
+      setUploadError(`Error al subir: ${failedUploads.join(', ')}`);
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setUploadError(null), 5000);
     }
 
     setUploadingLogo(false);
@@ -405,9 +415,10 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
                 <motion.button
                   whileHover={buttonHover}
                   whileTap={buttonTap}
-                  onClick={() => {
+                  disabled={saving}
+                  onClick={async () => {
                     if (editMode && hasChanges) {
-                      saveChanges();
+                      await saveChanges();
                     }
                     setEditMode(!editMode);
                   }}
@@ -415,10 +426,10 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
                     editMode
                       ? 'bg-primary text-white shadow-apple-glow'
                       : 'hover:bg-white/10 text-muted-dark'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                   title={editMode ? 'Terminar edición' : 'Editar'}
                 >
-                  <span className="material-icons-round text-lg">{editMode ? 'check' : 'edit'}</span>
+                  <span className="material-icons-round text-lg">{saving ? 'hourglass_empty' : (editMode ? 'check' : 'edit')}</span>
                 </motion.button>
 
                 <motion.button
@@ -602,6 +613,16 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[10px] text-muted-dark font-bold uppercase tracking-wider">Logos del Cliente</span>
+                      {uploadError && (
+                        <motion.span
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20"
+                        >
+                          {uploadError}
+                        </motion.span>
+                      )}
                       {editMode && (
                         <>
                           <input

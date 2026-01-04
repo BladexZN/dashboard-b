@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Credentials provided for frontend access
-const SUPABASE_URL = "https://jiorvtskypelmdpffddc.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_nOntZZ5N5h5l_r_ZVsJb-Q_JiUh3yhS";
+// Load credentials from environment variables
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
