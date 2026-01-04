@@ -379,7 +379,7 @@ const App: React.FC = () => {
             downloadable_links: dbReq.material_descargable || [],
             // Production board fields
             video_type: dbReq.video_type || undefined,
-            board_number: dbReq.board_number || undefined,
+            board_number: dbReq.board_number ? Number(dbReq.board_number) as BoardNumber : undefined,
             logos: dbReq.logos || [],
             completed_at: dbReq.completed_at,
             created_by_user_id: dbReq.created_by_user_id

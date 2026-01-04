@@ -189,8 +189,12 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
       r.status === 'Listo' || r.status === 'Entregado'
     );
 
-    const stats = ([1, 2, 3, 4] as BoardNumber[]).map(board => {
-      const producerVideos = completedVideos.filter(r => r.board_number === board);
+    // Stats for each board (1-4)
+    const boardStats = ([1, 2, 3, 4] as BoardNumber[]).map(board => {
+      // Use Number() comparison to handle potential string/number mismatches
+      const producerVideos = completedVideos.filter(r =>
+        r.board_number !== undefined && Number(r.board_number) === board
+      );
 
       // Calculate delivery times in days
       const deliveryTimes = producerVideos.map(r => {
@@ -219,6 +223,29 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
         over7d
       };
     });
+
+    // Videos without board assignment
+    const unassignedVideos = completedVideos.filter(r =>
+      r.board_number === undefined || r.board_number === null
+    );
+    const unassignedDeliveryTimes = unassignedVideos.map(r =>
+      r.timeToDeliver !== null ? r.timeToDeliver / 24 : null
+    ).filter((d): d is number => d !== null);
+
+    const unassignedStat = {
+      board: 0 as any,
+      name: 'Sin Asignar',
+      total: unassignedVideos.length,
+      avgDays: unassignedDeliveryTimes.length > 0
+        ? unassignedDeliveryTimes.reduce((a, b) => a + b, 0) / unassignedDeliveryTimes.length
+        : 0,
+      under24h: unassignedDeliveryTimes.filter(d => d < 1).length,
+      under7d: unassignedDeliveryTimes.filter(d => d >= 1 && d <= 7).length,
+      over7d: unassignedDeliveryTimes.filter(d => d > 7).length
+    };
+
+    // Combine all stats - only include unassigned if there are any
+    const stats = unassignedStat.total > 0 ? [...boardStats, unassignedStat] : boardStats;
 
     const totalVideos = completedVideos.length;
     const allDeliveryTimes = completedVideos
