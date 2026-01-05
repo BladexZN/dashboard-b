@@ -73,9 +73,16 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
   };
 
   const processedData = useMemo(() => {
+    // Pre-compute history map for O(1) lookup instead of O(n) filter per request
+    const historyMap = new Map<string, AuditLogEntry[]>();
+    history.forEach(h => {
+      const existing = historyMap.get(h.solicitudId) || [];
+      existing.push(h);
+      historyMap.set(h.solicitudId, existing);
+    });
+
     return requests.map(req => {
-      const reqHistory = history
-        .filter(h => h.solicitudId === req.uuid)
+      const reqHistory = (historyMap.get(req.uuid) || [])
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
       const createdTime = req.rawDate;

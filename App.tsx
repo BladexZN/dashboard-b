@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabaseClient';
-import './lib/security'; // Initialize security protections
+// import './lib/security'; // TEMPORARILY DISABLED FOR DEBUGGING
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Login from './components/Login';
