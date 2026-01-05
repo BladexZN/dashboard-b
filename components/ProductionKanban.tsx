@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RequestData, RequestStatus, BoardNumber, VideoType, VIDEO_TYPE_LABELS, BOARD_NAMES } from '../types';
-import { springConfig, buttonTap, buttonHover } from '../lib/animations';
+import { springConfig, buttonTap } from '../lib/animations';
 
 interface ProductionKanbanProps {
   requests: RequestData[];
@@ -12,6 +12,13 @@ interface ProductionKanbanProps {
 
 const SECTIONS: RequestStatus[] = ['Pendiente', 'En Producción', 'Corrección', 'Listo', 'Entregado'];
 
+// Items to show per section initially, then load more
+const ITEMS_PER_SECTION = 12;
+const LOAD_MORE_INCREMENT = 12;
+
+// Only animate first N items for performance
+const MAX_ANIMATED_ITEMS = 8;
+
 const getVideoTypeBadgeStyles = (videoType: VideoType) => {
   switch (videoType) {
     case 'Original': return 'bg-purple-500/20 text-purple-400 border-purple-500/40';
@@ -21,10 +28,112 @@ const getVideoTypeBadgeStyles = (videoType: VideoType) => {
   }
 };
 
+const getPriorityColor = (p: string) => {
+  if (p === 'Alta' || p === 'Urgente') return 'bg-red-500';
+  if (p === 'Media') return 'bg-yellow-500';
+  return 'bg-green-500';
+};
+
+// Memoized card component to prevent unnecessary re-renders
+interface KanbanCardProps {
+  req: RequestData;
+  idx: number;
+  isExactMatch: boolean;
+  isDragging: boolean;
+  onDragStart: (e: React.DragEvent, id: string) => void;
+  onDragEnd: () => void;
+  onViewDetail: (request: RequestData) => void;
+}
+
+const KanbanCard = memo<KanbanCardProps>(({
+  req,
+  idx,
+  isExactMatch,
+  isDragging,
+  onDragStart,
+  onDragEnd,
+  onViewDetail
+}) => {
+  // Only animate first few items for performance
+  const shouldAnimate = idx < MAX_ANIMATED_ITEMS;
+
+  return (
+    <motion.div
+      key={req.id}
+      initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : false}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={shouldAnimate ? { opacity: 0, scale: 0.9 } : undefined}
+      transition={shouldAnimate ? { ...springConfig.snappy, delay: idx * 0.015 } : { duration: 0.1 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      draggable
+      onDragStart={(e) => onDragStart(e as any, req.id)}
+      onDragEnd={onDragEnd}
+      onClick={() => onViewDetail(req)}
+      className={`
+        glass p-5 rounded-2xl border flex flex-col relative overflow-hidden group
+        ${isDragging ? 'opacity-40 scale-95 ring-2 ring-primary/50' : 'opacity-100'}
+        ${isExactMatch
+          ? 'border-primary ring-2 ring-primary shadow-apple-glow z-10'
+          : 'border-white/10 hover:border-primary/50 shadow-apple'}
+        apple-transition cursor-grab active:cursor-grabbing
+      `}
+    >
+      {/* Accent Line */}
+      <div className={`absolute top-0 left-0 w-1 h-full ${getPriorityColor(req.priority)} opacity-80`}></div>
+
+      <div className="pl-3">
+        <div className="flex justify-between items-start mb-2">
+          <span className={`text-xs font-bold ${isExactMatch ? 'text-primary' : 'text-muted-dark'}`}>{req.id}</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-lg uppercase font-bold tracking-wider ${
+            req.priority === 'Urgente' ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-muted-dark bg-white/5 border border-white/10'
+          }`}>{req.priority}</span>
+        </div>
+
+        {/* Video Type and Board Badges */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {req.video_type && (
+            <span className={`px-1.5 py-0.5 rounded-lg text-[9px] font-bold border ${getVideoTypeBadgeStyles(req.video_type)}`}>
+              {VIDEO_TYPE_LABELS[req.video_type] || req.video_type}
+            </span>
+          )}
+          {req.board_number && (
+            <span className="px-1.5 py-0.5 rounded-lg text-[9px] font-bold bg-primary/10 text-primary border border-primary/30">
+              {BOARD_NAMES[req.board_number].split(' ')[1]}
+            </span>
+          )}
+        </div>
+
+        <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none line-clamp-2" title={req.product}>{req.product}</h4>
+        <p className="text-sm text-muted-dark mb-5 truncate select-none" title={req.client}>{req.client}</p>
+
+        <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="w-7 h-7 rounded-full bg-gray-700 text-[10px] flex items-center justify-center text-white mr-2 border-2 border-white/10 font-bold">
+              {req.advisorInitials}
+            </div>
+            <span className="text-xs text-muted-dark select-none">{req.date}</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
+KanbanCard.displayName = 'KanbanCard';
+
 const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusChange, onViewDetail, selectedBoard }) => {
   const [localSearch, setLocalSearch] = useState('');
   const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
   const [activeDropZone, setActiveDropZone] = useState<RequestStatus | null>(null);
+
+  // Track how many items to show per section
+  const [sectionLimits, setSectionLimits] = useState<Record<RequestStatus, number>>({
+    'Pendiente': ITEMS_PER_SECTION,
+    'En Producción': ITEMS_PER_SECTION,
+    'Corrección': ITEMS_PER_SECTION,
+    'Listo': ITEMS_PER_SECTION,
+    'Entregado': ITEMS_PER_SECTION,
+  });
 
   const processedRequests = useMemo(() => {
     let filtered = requests;
@@ -45,31 +154,24 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
     return filtered;
   }, [requests, localSearch, selectedBoard]);
 
-  const getPriorityColor = (p: string) => {
-    if (p === 'Alta' || p === 'Urgente') return 'bg-red-500';
-    if (p === 'Media') return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  const handleDragStart = (e: React.DragEvent, id: string) => {
+  // Memoize handlers to prevent child re-renders
+  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     setDraggedRequestId(id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
-  };
+  }, []);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggedRequestId(null);
     setActiveDropZone(null);
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent, status: RequestStatus) => {
+  const handleDragOver = useCallback((e: React.DragEvent, status: RequestStatus) => {
     e.preventDefault();
-    if (activeDropZone !== status) {
-      setActiveDropZone(status);
-    }
-  };
+    setActiveDropZone(prev => prev !== status ? status : prev);
+  }, []);
 
-  const handleDrop = (e: React.DragEvent, status: RequestStatus) => {
+  const handleDrop = useCallback((e: React.DragEvent, status: RequestStatus) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain");
 
@@ -79,7 +181,18 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
 
     setDraggedRequestId(null);
     setActiveDropZone(null);
-  };
+  }, [onStatusChange]);
+
+  const handleLoadMore = useCallback((status: RequestStatus) => {
+    setSectionLimits(prev => ({
+      ...prev,
+      [status]: prev[status] + LOAD_MORE_INCREMENT
+    }));
+  }, []);
+
+  const handleViewDetail = useCallback((request: RequestData) => {
+    onViewDetail(request);
+  }, [onViewDetail]);
 
   return (
     <motion.div
@@ -109,7 +222,12 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                 </motion.span>
               )}
             </h2>
-            <p className="text-sm text-muted-dark">Gestiona el flujo de trabajo arrastrando las tarjetas.</p>
+            <p className="text-sm text-muted-dark">
+              Gestiona el flujo de trabajo arrastrando las tarjetas.
+              {processedRequests.length > 50 && (
+                <span className="ml-2 text-primary">({processedRequests.length} solicitudes)</span>
+              )}
+            </p>
           </div>
           <div className="relative w-full md:max-w-md group">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -142,10 +260,14 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
       ) : (
         <div className="space-y-10">
           {SECTIONS.map((status, sectionIdx) => {
-            const sectionRequests = processedRequests.filter(r => r.status === status);
+            const allSectionRequests = processedRequests.filter(r => r.status === status);
+            const currentLimit = sectionLimits[status];
+            const sectionRequests = allSectionRequests.slice(0, currentLimit);
+            const hasMore = allSectionRequests.length > currentLimit;
+            const remainingCount = allSectionRequests.length - currentLimit;
             const isDropZoneActive = activeDropZone === status;
 
-            if (sectionRequests.length === 0 && localSearch && !draggedRequestId) return null;
+            if (allSectionRequests.length === 0 && localSearch && !draggedRequestId) return null;
 
             return (
               <motion.div
@@ -168,79 +290,37 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                   />
                   <h3 className="text-xl font-bold text-white">{status}</h3>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold glass border border-white/10 text-muted-dark">
-                    {sectionRequests.length}
+                    {allSectionRequests.length}
                   </span>
+                  {hasMore && (
+                    <span className="text-xs text-muted-dark">
+                      (mostrando {sectionRequests.length})
+                    </span>
+                  )}
                 </div>
 
                 {/* Grid */}
                 <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 min-h-[100px] ${isDropZoneActive ? 'opacity-80' : ''}`}>
-                  <AnimatePresence>
+                  <AnimatePresence mode="popLayout">
                     {sectionRequests.map((req, idx) => {
                       const isExactMatch = localSearch && req.id.toLowerCase() === localSearch.toLowerCase();
                       const isDragging = draggedRequestId === req.id;
 
                       return (
-                        <motion.div
+                        <KanbanCard
                           key={req.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ ...springConfig.snappy, delay: idx < 20 ? idx * 0.015 : 0.3 }}
-                          whileHover={{ y: -4, scale: 1.02 }}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e as any, req.id)}
+                          req={req}
+                          idx={idx}
+                          isExactMatch={!!isExactMatch}
+                          isDragging={isDragging}
+                          onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
-                          onClick={() => onViewDetail(req)}
-                          className={`
-                            glass p-5 rounded-2xl border flex flex-col relative overflow-hidden group
-                            ${isDragging ? 'opacity-40 scale-95 ring-2 ring-primary/50' : 'opacity-100'}
-                            ${isExactMatch
-                              ? 'border-primary ring-2 ring-primary shadow-apple-glow z-10'
-                              : 'border-white/10 hover:border-primary/50 shadow-apple'}
-                            apple-transition cursor-grab active:cursor-grabbing
-                          `}
-                        >
-                          {/* Accent Line */}
-                          <div className={`absolute top-0 left-0 w-1 h-full ${getPriorityColor(req.priority)} opacity-80`}></div>
-
-                          <div className="pl-3">
-                            <div className="flex justify-between items-start mb-2">
-                              <span className={`text-xs  font-bold ${isExactMatch ? 'text-primary' : 'text-muted-dark'}`}>{req.id}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-lg uppercase font-bold tracking-wider ${
-                                req.priority === 'Urgente' ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-muted-dark bg-white/5 border border-white/10'
-                              }`}>{req.priority}</span>
-                            </div>
-
-                            {/* Video Type and Board Badges */}
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                              {req.video_type && (
-                                <span className={`px-1.5 py-0.5 rounded-lg text-[9px] font-bold border ${getVideoTypeBadgeStyles(req.video_type)}`}>
-                                  {VIDEO_TYPE_LABELS[req.video_type] || req.video_type}
-                                </span>
-                              )}
-                              {req.board_number && (
-                                <span className="px-1.5 py-0.5 rounded-lg text-[9px] font-bold bg-primary/10 text-primary border border-primary/30">
-                                  {BOARD_NAMES[req.board_number].split(' ')[1]}
-                                </span>
-                              )}
-                            </div>
-
-                            <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none line-clamp-2" title={req.product}>{req.product}</h4>
-                            <p className="text-sm text-muted-dark mb-5 truncate select-none" title={req.client}>{req.client}</p>
-
-                            <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
-                              <div className="flex items-center">
-                                <div className="w-7 h-7 rounded-full bg-gray-700 text-[10px] flex items-center justify-center text-white mr-2 border-2 border-white/10 font-bold">
-                                  {req.advisorInitials}
-                                </div>
-                                <span className="text-xs text-muted-dark select-none">{req.date}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
+                          onViewDetail={handleViewDetail}
+                        />
                       );
                     })}
                   </AnimatePresence>
+
                   {sectionRequests.length === 0 && !localSearch && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -251,6 +331,25 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                     </motion.div>
                   )}
                 </div>
+
+                {/* Load More Button */}
+                {hasMore && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-center pt-2"
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={buttonTap}
+                      onClick={() => handleLoadMore(status)}
+                      className="px-6 py-2.5 glass border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/5 hover:border-primary/30 apple-transition flex items-center gap-2"
+                    >
+                      <span className="material-icons-round text-lg">expand_more</span>
+                      Cargar más ({remainingCount} restantes)
+                    </motion.button>
+                  </motion.div>
+                )}
               </motion.div>
             );
           })}
@@ -260,4 +359,4 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
   );
 };
 
-export default ProductionKanban;
+export default memo(ProductionKanban);
