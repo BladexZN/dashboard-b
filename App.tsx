@@ -283,7 +283,7 @@ const App: React.FC = () => {
   const fetchDeletedData = useCallback(async () => {
     if (!session) return;
     try {
-      const { data } = await supabase.from('solicitudes').select(`*, asesor:usuarios!asesor_id(id, nombre), deleted_by_user:usuarios!deleted_by(nombre)`).eq('is_deleted', true).order('deleted_at', { ascending: false }).limit(100);
+      const { data } = await supabase.from('solicitudes').select(`*, asesor:usuarios!asesor_id(id, nombre), deleted_by_user:usuarios!deleted_by(nombre)`).eq('is_deleted', true).order('deleted_at', { ascending: false }).limit(500);
       if (data) {
         const mappedDeleted = data.map((dbReq: any) => ({
           id: dbReq.folio ? `#REQ-${dbReq.folio}` : 'PENDING',
@@ -311,7 +311,7 @@ const App: React.FC = () => {
     setDataError(null);
 
     try {
-      const { data: usersData, error: usersError } = await supabase.from('usuarios').select('*').limit(200);
+      const { data: usersData, error: usersError } = await supabase.from('usuarios').select('*').limit(500);
       if (usersError) throw usersError;
 
       const userMap = (usersData || []).reduce((acc, user) => {
@@ -338,7 +338,7 @@ const App: React.FC = () => {
       const { data: solicitudesData, error: reqError } = await query;
       if (reqError) throw reqError;
 
-      const { data: statusData, error: statusError } = await supabase.from('estados_solicitud').select('*').order('timestamp', { ascending: true }).limit(5000);
+      const { data: statusData, error: statusError } = await supabase.from('estados_solicitud').select('*').order('timestamp', { ascending: true }).limit(20000);
       if (statusError) throw statusError;
 
       const latestStatusMap: Record<string, RequestStatus> = {};
@@ -353,10 +353,23 @@ const App: React.FC = () => {
 
       if (solicitudesData) {
         const colors = ["bg-blue-900 text-blue-300", "bg-green-900 text-green-300", "bg-indigo-900 text-indigo-300", "bg-pink-900 text-pink-300", "bg-teal-900 text-teal-300"];
+
+        // Deterministic hash function for consistent colors
+        const hashString = (str: string): number => {
+          let hash = 0;
+          for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash = hash & hash; // Convert to 32bit integer
+          }
+          return Math.abs(hash);
+        };
+
         const mappedRequests = solicitudesData.map((dbReq: any) => {
           const currentStatus = latestStatusMap[dbReq.id] || 'Pendiente';
           const initials = dbReq.cliente ? dbReq.cliente.substring(0, 1).toUpperCase() : 'C';
-          const randomColor = colors[Math.floor(Math.random() * colors.length)];
+          // Use deterministic color based on client name hash
+          const colorIndex = hashString(dbReq.cliente || dbReq.id) % colors.length;
+          const clientColor = colors[colorIndex];
           const advisorName = dbReq.asesor?.nombre || 'Sin Asignar';
           const advisorInitials = advisorName !== 'Sin Asignar' ? advisorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : 'NA';
           return {
@@ -364,7 +377,7 @@ const App: React.FC = () => {
             uuid: dbReq.id,
             client: dbReq.cliente,
             clientInitials: initials,
-            clientColor: randomColor,
+            clientColor: clientColor,
             product: dbReq.producto,
             type: dbReq.tipo,
             priority: dbReq.prioridad || 'Media',

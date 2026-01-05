@@ -205,7 +205,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
       }
     });
     return Object.entries(groups)
-      .map(([name, stat]) => ({ name, total: stat.total, percentCorrection: (stat.corrections / stat.total) * 100, avgToListo: stat.countToListo > 0 ? stat.timeToListoSum / stat.countToListo : 0 }))
+      .map(([name, stat]) => ({ name, total: stat.total, percentCorrection: stat.total > 0 ? (stat.corrections / stat.total) * 100 : 0, avgToListo: stat.countToListo > 0 ? stat.timeToListoSum / stat.countToListo : 0 }))
       .sort((a, b) => b.total - a.total).slice(0, 5);
   }, [processedData]);
 
@@ -215,6 +215,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
     const { start, end } = getProducerDateRange(producerDateFilter);
     const filteredByDate = processedData.filter(r => {
       const requestDate = new Date(r.rawDate);
+      // Validate date - skip invalid dates
+      if (isNaN(requestDate.getTime())) return false;
       return requestDate >= start && requestDate <= end;
     });
 
@@ -268,7 +270,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
     ).filter((d): d is number => d !== null);
 
     const unassignedStat = {
-      board: 0 as any,
+      board: 0 as BoardNumber,
       name: 'Sin Asignar',
       total: unassignedVideos.length,
       avgDays: unassignedDeliveryTimes.length > 0

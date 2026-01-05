@@ -161,20 +161,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, selectedBoar
         <motion.div
           whileHover={buttonHover}
           whileTap={buttonTap}
-          onClick={() => onNavigate('bitacora')}
-          className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-xl apple-transition cursor-pointer ${
-            isActive('bitacora')
-              ? 'bg-primary/10 text-primary border border-primary/20'
-              : 'text-muted-dark hover:bg-white/5 hover:text-white border border-transparent'
-          }`}
-        >
-          <span className="material-icons-round mr-3 text-lg">history_edu</span>
-          Bitácora
-        </motion.div>
-
-        <motion.div
-          whileHover={buttonHover}
-          whileTap={buttonTap}
           onClick={() => onNavigate('reportes')}
           className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-xl apple-transition cursor-pointer ${
             isActive('reportes')
@@ -184,6 +170,20 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, selectedBoar
         >
           <span className="material-icons-round mr-3 text-lg">bar_chart</span>
           Reportes
+        </motion.div>
+
+        <motion.div
+          whileHover={buttonHover}
+          whileTap={buttonTap}
+          onClick={() => onNavigate('bitacora')}
+          className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-xl apple-transition cursor-pointer ${
+            isActive('bitacora')
+              ? 'bg-primary/10 text-primary border border-primary/20'
+              : 'text-muted-dark hover:bg-white/5 hover:text-white border border-transparent'
+          }`}
+        >
+          <span className="material-icons-round mr-3 text-lg">history_edu</span>
+          Bitácora
         </motion.div>
 
         <motion.div

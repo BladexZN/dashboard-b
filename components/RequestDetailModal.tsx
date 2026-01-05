@@ -51,6 +51,12 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const detailsRef = useRef<DetailState | null>(null);
+
+  // Keep ref in sync with state for auto-save
+  useEffect(() => {
+    detailsRef.current = details;
+  }, [details]);
 
   useEffect(() => {
     if (isOpen && request?.uuid) {
@@ -152,24 +158,26 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
   }, [details]);
 
   const saveChanges = async () => {
-    if (!details || !hasChanges) return;
+    // Use ref for latest details to avoid stale closure
+    const currentDetails = detailsRef.current;
+    if (!currentDetails || !hasChanges) return;
 
     setSaving(true);
     try {
       const { error } = await supabase
         .from('solicitudes')
         .update({
-          cliente: details.cliente,
-          producto: details.producto,
-          tipo: details.tipo,
-          descripcion: details.descripcion,
-          escaleta_video: details.escaleta_video,
-          material_descargable: details.material_descargable.filter(l => l.trim() !== ''),
-          video_type: details.video_type || null,
-          board_number: details.board_number || null,
-          logos: details.logos
+          cliente: currentDetails.cliente,
+          producto: currentDetails.producto,
+          tipo: currentDetails.tipo,
+          descripcion: currentDetails.descripcion,
+          escaleta_video: currentDetails.escaleta_video,
+          material_descargable: currentDetails.material_descargable.filter(l => l.trim() !== ''),
+          video_type: currentDetails.video_type || null,
+          board_number: currentDetails.board_number || null,
+          logos: currentDetails.logos
         })
-        .eq('id', details.id);
+        .eq('id', currentDetails.id);
 
       if (error) throw error;
 
