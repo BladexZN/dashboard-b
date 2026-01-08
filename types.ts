@@ -32,7 +32,7 @@ export interface LogoFile {
   uploadedAt: string;
 }
 
-export type Page = 'dashboard' | 'solicitudes' | 'produccion' | 'bitacora' | 'reportes' | 'usuarios' | 'configuracion';
+export type Page = 'dashboard' | 'solicitudes' | 'produccion' | 'bitacora' | 'reportes' | 'usuarios' | 'ads-lab' | 'configuracion';
 
 export type DateFilter = 'Hoy' | 'Este Mes' | 'Año' | string; // string ISO format for specific days
 
@@ -196,4 +196,23 @@ export interface VolumeStat {
   name: string;
   value: number;
   color: string;
+}
+
+// Productor (Designer) for workload tracking
+export interface Productor {
+  id: number;
+  board_number: BoardNumber;
+  nombre: string;
+  created_at?: string;
+}
+
+// Workload per producer for display in Solicitudes section
+export interface ProducerWorkload {
+  productor: Productor;
+  pendiente: number;
+  enProduccion: number;
+  correccion: number;
+  listo: number;
+  entregado: number;
+  total: number;
 }

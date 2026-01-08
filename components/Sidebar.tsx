@@ -199,6 +199,20 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, selectedBoar
           <span className="material-icons-round mr-3 text-lg">people</span>
           Usuarios
         </motion.div>
+
+        <motion.div
+          whileHover={buttonHover}
+          whileTap={buttonTap}
+          onClick={() => onNavigate('ads-lab')}
+          className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-xl apple-transition cursor-pointer ${
+            isActive('ads-lab')
+              ? 'bg-primary/10 text-primary border border-primary/20'
+              : 'text-muted-dark hover:bg-white/5 hover:text-white border border-transparent'
+          }`}
+        >
+          <span className="material-icons-round mr-3 text-lg">science</span>
+          Ads Lab
+        </motion.div>
       </nav>
 
       <div className="px-3 py-4 border-t border-white/10 space-y-1">

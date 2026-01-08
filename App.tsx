@@ -15,8 +15,9 @@ import SettingsView from './components/SettingsView';
 import ReportsView from './components/ReportsView';
 import NewRequestModal from './components/NewRequestModal';
 import RequestDetailModal from './components/RequestDetailModal';
+import AdsLabView from './components/AdsLabView';
 
-import { RequestData, RequestStatus, Page, AuditLogEntry, Notification, DateFilter, UserProfile, User, InboxNotification, AppSettings, BoardNumber } from './types';
+import { RequestData, RequestStatus, Page, AuditLogEntry, Notification, DateFilter, UserProfile, User, InboxNotification, AppSettings, BoardNumber, Productor, ProducerWorkload } from './types';
 
 const App: React.FC = () => {
   // --- AUTH STATE ---
@@ -34,7 +35,8 @@ const App: React.FC = () => {
   const [requests, setRequests] = useState<RequestData[]>([]);
   const [deletedRequests, setDeletedRequests] = useState<RequestData[]>([]); 
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
-  const [advisorsList, setAdvisorsList] = useState<User[]>([]); 
+  const [advisorsList, setAdvisorsList] = useState<User[]>([]);
+  const [productores, setProductores] = useState<Productor[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
 
@@ -314,6 +316,13 @@ const App: React.FC = () => {
       const { data: usersData, error: usersError } = await supabase.from('usuarios').select('*').limit(500);
       if (usersError) throw usersError;
 
+      // Fetch productores for workload cards
+      const { data: productoresData } = await supabase
+        .from('productores')
+        .select('*')
+        .order('board_number');
+      if (productoresData) setProductores(productoresData);
+
       const userMap = (usersData || []).reduce((acc, user) => {
         acc[user.id] = user.nombre;
         return acc;
@@ -437,7 +446,53 @@ const App: React.FC = () => {
     if (session) fetchAllData();
   }, [session, fetchAllData]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    if (!session) return;
+
+    const channel = supabase
+      .channel('workload-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'solicitudes' },
+        () => {
+          console.log('Realtime: solicitudes changed');
+          fetchAllData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'estados_solicitud' },
+        () => {
+          console.log('Realtime: estado changed');
+          fetchAllData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session, fetchAllData]);
+
   const dashboardRequests = useMemo(() => requests, [requests]);
+
+  // Calculate workload per producer for the workload cards
+  const producerWorkloads = useMemo((): ProducerWorkload[] => {
+    return productores.map(p => {
+      const boardRequests = requests.filter(r => r.board_number === p.board_number);
+      return {
+        productor: p,
+        pendiente: boardRequests.filter(r => r.status === 'Pendiente').length,
+        enProduccion: boardRequests.filter(r => r.status === 'En Producción').length,
+        correccion: boardRequests.filter(r => r.status === 'Corrección').length,
+        listo: boardRequests.filter(r => r.status === 'Listo').length,
+        entregado: boardRequests.filter(r => r.status === 'Entregado').length,
+        total: boardRequests.length
+      };
+    });
+  }, [productores, requests]);
+
   const dashboardStats = useMemo(() => ({
     total: dashboardRequests.length,
     pending: dashboardRequests.filter(r => r.status === 'Pendiente').length,
@@ -463,7 +518,7 @@ const App: React.FC = () => {
   const advisors = useMemo(() => Array.from(new Set(requests.map(r => r.advisor))), [requests]);
 
   const pageTitle = {
-    dashboard: 'Dashboard Overview', solicitudes: 'Solicitudes', produccion: 'Tablero de Producción', bitacora: 'Bitácora Histórica', reportes: 'Reportes y Métricas', usuarios: 'Gestión de Usuarios', configuracion: 'Configuración del Sistema'
+    dashboard: 'Dashboard Overview', solicitudes: 'Solicitudes', produccion: 'Tablero de Producción', bitacora: 'Bitácora Histórica', reportes: 'Reportes y Métricas', usuarios: 'Gestión de Usuarios', 'ads-lab': 'Ads Lab', configuracion: 'Configuración del Sistema'
   }[currentPage];
 
   const handleSoftDelete = async (request: RequestData) => {
@@ -652,8 +707,8 @@ const App: React.FC = () => {
         );
       case 'solicitudes':
         return (
-          <RequestsTable 
-            requests={filteredRequests} 
+          <RequestsTable
+            requests={filteredRequests}
             onStatusChange={handleStatusChange}
             onNewRequest={() => setIsNewModalOpen(true)}
             onEditRequest={setEditingRequest}
@@ -666,6 +721,7 @@ const App: React.FC = () => {
             setSearchQuery={setSearchQuery}
             advisors={advisors}
             onDelete={handleSoftDelete}
+            producerWorkloads={producerWorkloads}
           />
         );
       case 'produccion':
@@ -676,6 +732,8 @@ const App: React.FC = () => {
         return <ReportsView requests={requests} history={auditLogs} dateFilter={dateFilter} loading={dataLoading} />;
       case 'usuarios':
         return <UsersView />;
+      case 'ads-lab':
+        return <AdsLabView currentUser={userProfile} />;
       case 'configuracion':
         return <SettingsView settings={settings} onToggle={updateSettings} />;
       default:

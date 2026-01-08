@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RequestData, RequestStatus } from '../types';
+import { RequestData, RequestStatus, ProducerWorkload } from '../types';
 import { springConfig, buttonTap, buttonHover } from '../lib/animations';
 import CustomSelect from './CustomSelect';
 
@@ -18,6 +18,7 @@ interface RequestsTableProps {
   setSearchQuery: (query: string) => void;
   advisors: string[];
   onDelete: (request: RequestData) => void;
+  producerWorkloads?: ProducerWorkload[];
 }
 
 const STATUS_OPTIONS: RequestStatus[] = ['Pendiente', 'En Producción', 'Listo', 'Entregado', 'Corrección'];
@@ -210,6 +211,55 @@ const TableRow = memo<TableRowProps>(({
 
 TableRow.displayName = 'TableRow';
 
+// Producer Workload Card Component
+const ProducerCard = memo<{ workload: ProducerWorkload }>(({ workload }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={springConfig.gentle}
+    className="glass border border-white/10 rounded-xl p-4 shadow-apple"
+  >
+    <div className="flex items-center justify-between mb-3">
+      <h3 className="text-sm font-bold text-white">{workload.productor.nombre}</h3>
+      <span className="text-[10px] text-muted-dark bg-white/5 px-2 py-0.5 rounded border border-white/10">
+        Tablero {workload.productor.board_number}
+      </span>
+    </div>
+
+    <div className="grid grid-cols-5 gap-2 text-center text-xs">
+      <div>
+        <div className="text-yellow-400 font-bold text-lg">{workload.pendiente}</div>
+        <div className="text-muted-dark text-[10px]">Pend.</div>
+      </div>
+      <div>
+        <div className="text-purple-400 font-bold text-lg">{workload.enProduccion}</div>
+        <div className="text-muted-dark text-[10px]">Prod.</div>
+      </div>
+      <div>
+        <div className="text-orange-400 font-bold text-lg">{workload.correccion}</div>
+        <div className="text-muted-dark text-[10px]">Corr.</div>
+      </div>
+      <div>
+        <div className="text-primary font-bold text-lg">{workload.listo}</div>
+        <div className="text-muted-dark text-[10px]">Listo</div>
+      </div>
+      <div>
+        <div className="text-gray-400 font-bold text-lg">{workload.entregado}</div>
+        <div className="text-muted-dark text-[10px]">Entreg.</div>
+      </div>
+    </div>
+
+    <div className="mt-3 pt-3 border-t border-white/10 flex justify-between items-center">
+      <span className="text-[10px] text-muted-dark">Total activo:</span>
+      <span className="text-sm font-bold text-white">
+        {workload.pendiente + workload.enProduccion + workload.correccion + workload.listo}
+      </span>
+    </div>
+  </motion.div>
+));
+
+ProducerCard.displayName = 'ProducerCard';
+
 const RequestsTable: React.FC<RequestsTableProps> = ({
   requests,
   onStatusChange,
@@ -223,7 +273,8 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
   searchQuery,
   setSearchQuery,
   advisors,
-  onDelete
+  onDelete,
+  producerWorkloads
 }) => {
   const [openStatusDropdown, setOpenStatusDropdown] = useState<string | null>(null);
   const [deleteArmedId, setDeleteArmedId] = useState<string | null>(null);
@@ -305,13 +356,24 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={springConfig.gentle}
-      className="glass border border-white/10 rounded-2xl flex flex-col h-full shadow-apple"
-      onClick={(e) => e.stopPropagation()}
-    >
+    <div className="space-y-6">
+      {/* Producer Workload Cards */}
+      {producerWorkloads && producerWorkloads.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {producerWorkloads.map(workload => (
+            <ProducerCard key={workload.productor.id} workload={workload} />
+          ))}
+        </div>
+      )}
+
+      {/* Main Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={springConfig.gentle}
+        className="glass border border-white/10 rounded-2xl flex flex-col h-full shadow-apple"
+        onClick={(e) => e.stopPropagation()}
+      >
       {/* Table Filters/Actions */}
       <div className="p-5 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-2">
@@ -464,6 +526,7 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
         )}
       </div>
     </motion.div>
+    </div>
   );
 };
 
