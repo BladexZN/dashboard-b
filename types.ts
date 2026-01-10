@@ -55,6 +55,8 @@ export interface RequestData {
   description?: string;
   escaleta?: string;
   downloadable_links?: string[];
+  aparatologia_tecnica?: string;
+  wetransfer_link?: string;
   // Production board fields
   video_type?: VideoType;
   board_number?: BoardNumber;
@@ -80,6 +82,8 @@ export interface DBSolicitud {
   descripcion: string;
   escaleta_video: string; // Renamed to match schema
   material_descargable: string[]; // Renamed to match schema (JSON array)
+  aparatologia_tecnica?: string;
+  wetransfer_link?: string;
   // Production board fields
   video_type?: string;
   board_number?: number;

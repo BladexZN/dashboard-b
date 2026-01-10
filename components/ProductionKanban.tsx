@@ -7,6 +7,7 @@ interface ProductionKanbanProps {
   requests: RequestData[];
   onStatusChange: (id: string, status: RequestStatus) => void;
   onViewDetail: (request: RequestData) => void;
+  onDuplicate: (request: RequestData) => void;
   selectedBoard: BoardNumber | null;
 }
 
@@ -43,6 +44,7 @@ interface KanbanCardProps {
   onDragStart: (e: React.DragEvent, id: string) => void;
   onDragEnd: () => void;
   onViewDetail: (request: RequestData) => void;
+  onDuplicate: (request: RequestData) => void;
 }
 
 const KanbanCard = memo<KanbanCardProps>(({
@@ -52,7 +54,8 @@ const KanbanCard = memo<KanbanCardProps>(({
   isDragging,
   onDragStart,
   onDragEnd,
-  onViewDetail
+  onViewDetail,
+  onDuplicate
 }) => {
   // Only animate first few items for performance
   const shouldAnimate = idx < MAX_ANIMATED_ITEMS;
@@ -83,7 +86,18 @@ const KanbanCard = memo<KanbanCardProps>(({
 
       <div className="pl-3">
         <div className="flex justify-between items-start mb-2">
-          <span className={`text-xs font-bold ${isExactMatch ? 'text-primary' : 'text-muted-dark'}`}>{req.id}</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-bold ${isExactMatch ? 'text-primary' : 'text-muted-dark'}`}>{req.id}</span>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => { e.stopPropagation(); onDuplicate(req); }}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-muted-dark hover:text-blue-400 hover:bg-blue-500/10 apple-transition"
+              title="Duplicar solicitud"
+            >
+              <span className="material-icons-round text-sm">content_copy</span>
+            </motion.button>
+          </div>
           <span className={`text-[10px] px-1.5 py-0.5 rounded-lg uppercase font-bold tracking-wider ${
             req.priority === 'Urgente' ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-muted-dark bg-white/5 border border-white/10'
           }`}>{req.priority}</span>
@@ -121,7 +135,7 @@ const KanbanCard = memo<KanbanCardProps>(({
 
 KanbanCard.displayName = 'KanbanCard';
 
-const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusChange, onViewDetail, selectedBoard }) => {
+const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusChange, onViewDetail, onDuplicate, selectedBoard }) => {
   const [localSearch, setLocalSearch] = useState('');
   const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
   const [activeDropZone, setActiveDropZone] = useState<RequestStatus | null>(null);
@@ -193,6 +207,10 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
   const handleViewDetail = useCallback((request: RequestData) => {
     onViewDetail(request);
   }, [onViewDetail]);
+
+  const handleDuplicate = useCallback((request: RequestData) => {
+    onDuplicate(request);
+  }, [onDuplicate]);
 
   return (
     <motion.div
@@ -316,6 +334,7 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                           onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
                           onViewDetail={handleViewDetail}
+                          onDuplicate={handleDuplicate}
                         />
                       );
                     })}

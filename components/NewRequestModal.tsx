@@ -26,6 +26,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     advisorName: '',
     description: '',
     escaleta: '',
+    aparatologia_tecnica: '',
+    wetransfer_link: '',
     video_type: '' as VideoType | '',
     board_number: 1 as BoardNumber,
     downloadable_links: [''],
@@ -42,6 +44,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         advisorName: initialData.advisor || '',
         description: initialData.description || '',
         escaleta: initialData.escaleta || '',
+        aparatologia_tecnica: initialData.aparatologia_tecnica || '',
+        wetransfer_link: initialData.wetransfer_link || '',
         video_type: initialData.video_type || '',
         board_number: initialData.board_number || 1,
         downloadable_links: initialData.downloadable_links && initialData.downloadable_links.length > 0
@@ -58,6 +62,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         advisorName: currentUser?.nombre || '',
         description: '',
         escaleta: '',
+        aparatologia_tecnica: '',
+        wetransfer_link: '',
         video_type: '',
         board_number: 1,
         downloadable_links: [''],
@@ -205,7 +211,9 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       video_type: formData.video_type || undefined,
       board_number: formData.board_number,
       downloadable_links: finalLinks,
-      logos: formData.logos
+      logos: formData.logos,
+      aparatologia_tecnica: formData.aparatologia_tecnica,
+      wetransfer_link: formData.wetransfer_link
     });
   };
 
@@ -392,6 +400,26 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
                 ></textarea>
               </motion.div>
 
+              {/* Section: Aparatología / Técnica */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.27 }}
+                className="border-t border-white/10 pt-4 mt-2"
+              >
+                <h3 className="text-[10px] font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <span className="material-icons-round text-primary text-sm">science</span>
+                  Aparatología / Técnica
+                </h3>
+                <textarea
+                  rows={3}
+                  className="w-full glass border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none placeholder-muted-dark apple-transition"
+                  placeholder="Especifica el equipo, aparatología o técnica utilizada en el tratamiento..."
+                  value={formData.aparatologia_tecnica}
+                  onChange={e => setFormData({...formData, aparatologia_tecnica: e.target.value})}
+                ></textarea>
+              </motion.div>
+
               {/* Section: Subir Logo del cliente */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -573,6 +601,32 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
                       </motion.div>
                     );
                   })}
+                </div>
+              </motion.div>
+
+              {/* Section: WeTransfer - Entrega Final */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.42 }}
+                className="border-t border-white/10 pt-4 mt-2"
+              >
+                <h3 className="text-[10px] font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <span className="material-icons-round text-green-400 text-sm">cloud_upload</span>
+                  WeTransfer - Entrega Final
+                </h3>
+                <p className="text-[10px] text-muted-dark mb-2">Link de WeTransfer para la entrega del video final al cliente</p>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="material-icons-round text-muted-dark text-lg">link</span>
+                  </span>
+                  <input
+                    type="url"
+                    className="w-full glass border border-white/10 rounded-xl pl-10 pr-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-green-500/50 focus:outline-none placeholder-muted-dark apple-transition"
+                    placeholder="https://we.tl/..."
+                    value={formData.wetransfer_link}
+                    onChange={e => setFormData({...formData, wetransfer_link: e.target.value})}
+                  />
                 </div>
               </motion.div>
 

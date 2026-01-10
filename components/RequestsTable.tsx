@@ -18,6 +18,7 @@ interface RequestsTableProps {
   setSearchQuery: (query: string) => void;
   advisors: string[];
   onDelete: (request: RequestData) => void;
+  onDuplicate: (request: RequestData) => void;
   producerWorkloads?: ProducerWorkload[];
 }
 
@@ -36,6 +37,7 @@ interface TableRowProps {
   onRowClick: (request: RequestData) => void;
   onEditRequest: (request: RequestData) => void;
   onDelete: (request: RequestData) => void;
+  onDuplicate: (request: RequestData) => void;
   onStatusClick: (e: React.MouseEvent, id: string) => void;
   onStatusSelect: (e: React.MouseEvent, id: string, status: RequestStatus) => void;
   onDeleteClick: (e: React.MouseEvent, request: RequestData) => void;
@@ -49,6 +51,7 @@ const TableRow = memo<TableRowProps>(({
   onRowClick,
   onEditRequest,
   onDelete,
+  onDuplicate,
   onStatusClick,
   onStatusSelect,
   onDeleteClick
@@ -189,6 +192,15 @@ const TableRow = memo<TableRowProps>(({
           <motion.button
             whileHover={buttonHover}
             whileTap={buttonTap}
+            title="Duplicar solicitud"
+            onClick={(e) => { e.stopPropagation(); onDuplicate(req); }}
+            className="p-2 text-muted-dark hover:text-blue-400 hover:bg-blue-500/10 rounded-xl apple-transition"
+          >
+            <span className="material-icons-round text-lg">content_copy</span>
+          </motion.button>
+          <motion.button
+            whileHover={buttonHover}
+            whileTap={buttonTap}
             title="Editar"
             onClick={(e) => { e.stopPropagation(); onEditRequest(req); }}
             className="p-2 text-muted-dark hover:text-primary hover:bg-primary/10 rounded-xl apple-transition"
@@ -274,6 +286,7 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
   setSearchQuery,
   advisors,
   onDelete,
+  onDuplicate,
   producerWorkloads
 }) => {
   const [openStatusDropdown, setOpenStatusDropdown] = useState<string | null>(null);
@@ -464,6 +477,7 @@ const RequestsTable: React.FC<RequestsTableProps> = ({
                   onRowClick={handleRowClick}
                   onEditRequest={handleEditRequest}
                   onDelete={onDelete}
+                  onDuplicate={onDuplicate}
                   onStatusClick={handleStatusClick}
                   onStatusSelect={handleStatusSelect}
                   onDeleteClick={handleDeleteClick}

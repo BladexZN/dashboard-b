@@ -23,6 +23,7 @@ interface DetailState {
   descripcion: string;
   escaleta_video: string;
   material_descargable: string[];
+  wetransfer_link: string;
   video_type: VideoType | '';
   board_number: BoardNumber | null;
   logos: LogoFile[];
@@ -122,6 +123,7 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
           descripcion: solData.descripcion || '',
           escaleta_video: solData.escaleta_video || '',
           material_descargable: solData.material_descargable || [],
+          wetransfer_link: solData.wetransfer_link || '',
           video_type: solData.video_type || '',
           board_number: solData.board_number || null,
           logos: solData.logos || [],
@@ -173,6 +175,7 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
           descripcion: currentDetails.descripcion,
           escaleta_video: currentDetails.escaleta_video,
           material_descargable: currentDetails.material_descargable.filter(l => l.trim() !== ''),
+          wetransfer_link: currentDetails.wetransfer_link || null,
           video_type: currentDetails.video_type || null,
           board_number: currentDetails.board_number || null,
           logos: currentDetails.logos
@@ -809,6 +812,55 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
                           </div>
                         ) : (
                           <p className="text-xs text-muted-dark text-center py-2">No hay links agregados.</p>
+                        )}
+                      </>
+                    )}
+                  </motion.div>
+
+                  {/* WeTransfer - Entrega Final */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...springConfig.gentle, delay: 0.28 }}
+                    className="glass rounded-2xl p-4 border border-green-500/20 bg-green-500/5"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-icons-round text-green-400 text-lg">cloud_upload</span>
+                      <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider">WeTransfer - Entrega Final</span>
+                    </div>
+
+                    {editMode ? (
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="material-icons-round text-muted-dark text-lg">link</span>
+                        </span>
+                        <input
+                          type="url"
+                          value={details.wetransfer_link}
+                          onChange={(e) => handleFieldChange('wetransfer_link', e.target.value)}
+                          placeholder="https://we.tl/..."
+                          className="w-full glass border border-white/10 rounded-xl pl-10 pr-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-green-500/50 focus:outline-none apple-transition"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        {details.wetransfer_link ? (
+                          <motion.a
+                            whileHover={{ x: 4, scale: 1.02 }}
+                            href={details.wetransfer_link.startsWith('http') ? details.wetransfer_link : `https://${details.wetransfer_link}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center p-3 rounded-xl glass border border-green-500/30 hover:border-green-400 hover:bg-green-500/10 apple-transition group"
+                          >
+                            <span className="material-icons-round text-xl mr-3 text-green-400">download</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white group-hover:text-green-400 apple-transition">Descargar Video Final</p>
+                              <p className="text-[10px] text-muted-dark truncate">{details.wetransfer_link}</p>
+                            </div>
+                            <span className="material-icons-round text-sm text-muted-dark group-hover:text-green-400 group-hover:translate-x-1 apple-transition">open_in_new</span>
+                          </motion.a>
+                        ) : (
+                          <p className="text-xs text-muted-dark text-center py-2">No hay link de entrega disponible.</p>
                         )}
                       </>
                     )}

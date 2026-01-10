@@ -399,6 +399,8 @@ const App: React.FC = () => {
             description: dbReq.descripcion,
             escaleta: dbReq.escaleta_video,
             downloadable_links: dbReq.material_descargable || [],
+            aparatologia_tecnica: dbReq.aparatologia_tecnica || '',
+            wetransfer_link: dbReq.wetransfer_link || '',
             // Production board fields
             video_type: dbReq.video_type || undefined,
             board_number: dbReq.board_number ? Number(dbReq.board_number) as BoardNumber : undefined,
@@ -536,6 +538,36 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDuplicate = async (request: RequestData) => {
+    if (!userProfile?.id) return;
+    try {
+      const payload = {
+        cliente: request.client,
+        producto: request.product,
+        tipo: request.type,
+        asesor_id: request.advisorId,
+        prioridad: request.priority || 'Media',
+        descripcion: request.description || '',
+        fecha_creacion: new Date().toISOString(),
+        escaleta_video: request.escaleta || '',
+        material_descargable: request.downloadable_links || [],
+        aparatologia_tecnica: request.aparatologia_tecnica || null,
+        wetransfer_link: request.wetransfer_link || null,
+        is_deleted: false,
+        video_type: request.video_type || null,
+        board_number: request.board_number || null,
+        logos: request.logos || [],
+        created_by_user_id: userProfile.id
+      };
+      const { data: insertedData, error } = await supabase.from('solicitudes').insert([payload]).select().single();
+      if (error) throw error;
+      addToast(`Solicitud ${request.id} duplicada exitosamente`, 'success');
+      fetchAllData();
+    } catch (err: any) {
+      addToast(`Error al duplicar: ${err.message}`, "info");
+    }
+  };
+
   const handleRestore = async (uuid: string) => {
     try {
       const { error } = await supabase.from('solicitudes').update({ is_deleted: false, deleted_at: null, deleted_by: null }).eq('id', uuid);
@@ -610,6 +642,8 @@ const App: React.FC = () => {
           descripcion: data.description,
           escaleta_video: data.escaleta,
           material_descargable: data.downloadable_links,
+          aparatologia_tecnica: data.aparatologia_tecnica || null,
+          wetransfer_link: data.wetransfer_link || null,
           video_type: data.video_type || null,
           board_number: data.board_number || null,
           logos: data.logos || []
@@ -630,6 +664,8 @@ const App: React.FC = () => {
           fecha_creacion: new Date().toISOString(),
           escaleta_video: data.escaleta || '',
           material_descargable: data.downloadable_links || [],
+          aparatologia_tecnica: data.aparatologia_tecnica || null,
+          wetransfer_link: data.wetransfer_link || null,
           is_deleted: false,
           video_type: data.video_type || null,
           board_number: data.board_number || null,
@@ -688,7 +724,7 @@ const App: React.FC = () => {
                   </span>
                 </div>
                 <RequestsTable
-                  requests={dataLoading ? [] : filteredDashboardRequests.slice(0, 5)} 
+                  requests={dataLoading ? [] : filteredDashboardRequests.slice(0, 5)}
                   onStatusChange={handleStatusChange}
                   onNewRequest={() => setIsNewModalOpen(true)}
                   onEditRequest={setEditingRequest}
@@ -701,6 +737,7 @@ const App: React.FC = () => {
                   setSearchQuery={setSearchQuery}
                   advisors={advisors}
                   onDelete={handleSoftDelete}
+                  onDuplicate={handleDuplicate}
                 />
              </div>
            </div>
@@ -721,11 +758,12 @@ const App: React.FC = () => {
             setSearchQuery={setSearchQuery}
             advisors={advisors}
             onDelete={handleSoftDelete}
+            onDuplicate={handleDuplicate}
             producerWorkloads={producerWorkloads}
           />
         );
       case 'produccion':
-        return <ProductionKanban requests={filteredRequests} onStatusChange={handleStatusChange} onViewDetail={setDetailModalRequest} selectedBoard={selectedBoard} />;
+        return <ProductionKanban requests={filteredRequests} onStatusChange={handleStatusChange} onViewDetail={setDetailModalRequest} onDuplicate={handleDuplicate} selectedBoard={selectedBoard} />;
       case 'bitacora':
         return <AuditLogView logs={auditLogs} deletedRequests={deletedRequests} onRestore={handleRestore} />;
       case 'reportes':
