@@ -43,6 +43,9 @@ const App: React.FC = () => {
   // Guard for race conditions
   const fetchIdRef = useRef(0);
 
+  // Track local status changes to avoid redundant refetch from realtime
+  const localStatusChangeRef = useRef<string | null>(null);
+
   // Flag para saber si la carga inicial ya terminó (evita mostrar loader al navegar)
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
@@ -471,8 +474,14 @@ const App: React.FC = () => {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'estados_solicitud' },
-        () => {
-          console.log('Realtime: estado changed');
+        (payload) => {
+          // Skip refetch if this was a local status change (already updated optimistically)
+          const changedSolicitudId = payload.new?.solicitud_id;
+          if (localStatusChangeRef.current === changedSolicitudId) {
+            console.log('Realtime: estado changed (local, skipping refetch)');
+            return;
+          }
+          console.log('Realtime: estado changed (external)');
           fetchAllData();
         }
       )
@@ -591,6 +600,10 @@ const App: React.FC = () => {
     if (!req) return;
     const internalId = req.uuid;
     if (!internalId || req.status === newStatus) return;
+
+    // Track this as a local change to prevent redundant refetch from realtime
+    localStatusChangeRef.current = internalId;
+
     const previousRequests = [...requests];
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
     try {
@@ -629,10 +642,15 @@ const App: React.FC = () => {
       }
 
       addToast(`Estado de ${req.id} actualizado.`, 'success');
-      fetchAllData();
+      // Note: Removed fetchAllData() - optimistic update already applied, realtime will sync if needed
     } catch (err) {
       addToast("Error al guardar el nuevo estado. Revertido.", "info");
       setRequests(previousRequests);
+    } finally {
+      // Clear local change tracker after a short delay to let realtime catch up
+      setTimeout(() => {
+        localStatusChangeRef.current = null;
+      }, 1000);
     }
   };
 
@@ -856,7 +874,7 @@ const App: React.FC = () => {
         <div className="absolute bottom-8 right-8 z-50 flex flex-col gap-2 pointer-events-none">
           {toastNotifications.map(n => (
             <div key={n.id} className="bg-surface-dark border border-border-dark text-white px-4 py-3 rounded-lg shadow-2xl flex items-center animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
-              <span class={`material-icons-round mr-2 ${n.type === 'success' ? 'text-primary' : 'text-blue-400'}`}>{n.type === 'success' ? 'check_circle' : 'info'}</span>
+              <span className={`material-icons-round mr-2 ${n.type === 'success' ? 'text-primary' : 'text-blue-400'}`}>{n.type === 'success' ? 'check_circle' : 'info'}</span>
               <span className="text-sm font-medium">{n.message}</span>
             </div>
           ))}

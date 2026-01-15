@@ -87,6 +87,7 @@ const KanbanCard = memo<KanbanCardProps>(({
 
   return (
     <motion.div
+      layout
       key={req.id}
       initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : false}
       animate={{ opacity: 1, scale: 1 }}

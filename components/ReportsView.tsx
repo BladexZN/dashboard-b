@@ -418,8 +418,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
               </div>
             </div>
           ) : (
-            <div className="flex-1 w-full min-h-0 relative flex flex-col">
-              <div className="flex-1 min-h-0 relative">
+            <div className="flex-1 w-full min-h-[180px] relative flex flex-col">
+              <div className="flex-1 min-h-[150px] relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <Pie data={statusDistData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={75} paddingAngle={0} startAngle={90} endAngle={-270} stroke="none">
@@ -459,7 +459,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ requests, history, dateFilter
               ))}
             </div>
           ) : (
-            <div className="flex-1 w-full min-h-0">
+            <div className="flex-1 w-full min-h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
