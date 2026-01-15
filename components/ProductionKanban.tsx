@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RequestData, RequestStatus, BoardNumber, VideoType, VIDEO_TYPE_LABELS, BOARD_NAMES } from '../types';
+import { RequestData, RequestStatus, BoardNumber, VideoType, VIDEO_TYPE_LABELS, BOARD_NAMES, RequestType } from '../types';
 import { springConfig, buttonTap } from '../lib/animations';
+import ActivityCountdown from './ActivityCountdown';
 
 interface ProductionKanbanProps {
   requests: RequestData[];
@@ -9,16 +10,43 @@ interface ProductionKanbanProps {
   onViewDetail: (request: RequestData) => void;
   onDuplicate: (request: RequestData) => void;
   selectedBoard: BoardNumber | null;
+  loading?: boolean;
 }
 
-const SECTIONS: RequestStatus[] = ['Pendiente', 'En Producción', 'Corrección', 'Listo', 'Entregado'];
+const COLUMNS: RequestStatus[] = ['Pendiente', 'En Producción', 'Corrección', 'Listo', 'Entregado'];
 
-// Items to show per section initially, then load more
-const ITEMS_PER_SECTION = 12;
+// Items to show per column initially, then load more
+const ITEMS_PER_COLUMN = 12;
 const LOAD_MORE_INCREMENT = 12;
 
 // Only animate first N items for performance
 const MAX_ANIMATED_ITEMS = 8;
+
+// Colores por tipo de solicitud (colorimetría del PDF)
+const TYPE_COLORS: Record<RequestType, { bg: string; border: string; text: string; line: string }> = {
+  'Corrección': { bg: 'bg-red-500/20', border: 'border-red-500/40', text: 'text-red-400', line: 'bg-red-500' },
+  'Agregado': { bg: 'bg-yellow-500/20', border: 'border-yellow-500/40', text: 'text-yellow-400', line: 'bg-yellow-500' },
+  'Variante': { bg: 'bg-orange-500/20', border: 'border-orange-500/40', text: 'text-orange-400', line: 'bg-orange-500' },
+  'Video completo': { bg: 'bg-green-500/20', border: 'border-green-500/40', text: 'text-green-400', line: 'bg-green-500' },
+};
+
+// Estilos de columna por estado
+const getColumnStyles = (status: RequestStatus) => {
+  switch (status) {
+    case 'Pendiente':
+      return { bg: 'bg-yellow-500/5', border: 'border-yellow-500/20', header: 'bg-yellow-500/10', dot: 'bg-yellow-500' };
+    case 'En Producción':
+      return { bg: 'bg-purple-500/5', border: 'border-purple-500/20', header: 'bg-purple-500/10', dot: 'bg-purple-500' };
+    case 'Corrección':
+      return { bg: 'bg-orange-500/5', border: 'border-orange-500/20', header: 'bg-orange-500/10', dot: 'bg-orange-500' };
+    case 'Listo':
+      return { bg: 'bg-primary/5', border: 'border-primary/20', header: 'bg-primary/10', dot: 'bg-primary' };
+    case 'Entregado':
+      return { bg: 'bg-blue-500/5', border: 'border-blue-500/20', header: 'bg-blue-500/10', dot: 'bg-blue-500' };
+    default:
+      return { bg: 'bg-white/5', border: 'border-white/10', header: 'bg-white/5', dot: 'bg-gray-500' };
+  }
+};
 
 const getVideoTypeBadgeStyles = (videoType: VideoType) => {
   switch (videoType) {
@@ -27,12 +55,6 @@ const getVideoTypeBadgeStyles = (videoType: VideoType) => {
     case 'Stock': return 'bg-gray-500/20 text-gray-400 border-gray-500/40';
     default: return 'bg-gray-500/20 text-gray-400 border-gray-500/40';
   }
-};
-
-const getPriorityColor = (p: string) => {
-  if (p === 'Alta' || p === 'Urgente') return 'bg-red-500';
-  if (p === 'Media') return 'bg-yellow-500';
-  return 'bg-green-500';
 };
 
 // Memoized card component to prevent unnecessary re-renders
@@ -60,6 +82,9 @@ const KanbanCard = memo<KanbanCardProps>(({
   // Only animate first few items for performance
   const shouldAnimate = idx < MAX_ANIMATED_ITEMS;
 
+  // Obtener colores del tipo de solicitud
+  const typeColors = TYPE_COLORS[req.type] || TYPE_COLORS['Video completo'];
+
   return (
     <motion.div
       key={req.id}
@@ -73,7 +98,7 @@ const KanbanCard = memo<KanbanCardProps>(({
       onDragEnd={onDragEnd}
       onClick={() => onViewDetail(req)}
       className={`
-        glass p-5 rounded-2xl border flex flex-col relative overflow-hidden group
+        glass p-4 rounded-2xl border flex flex-col relative overflow-hidden group
         ${isDragging ? 'opacity-40 scale-95 ring-2 ring-primary/50' : 'opacity-100'}
         ${isExactMatch
           ? 'border-primary ring-2 ring-primary shadow-apple-glow z-10'
@@ -81,10 +106,11 @@ const KanbanCard = memo<KanbanCardProps>(({
         apple-transition cursor-grab active:cursor-grabbing
       `}
     >
-      {/* Accent Line */}
-      <div className={`absolute top-0 left-0 w-1 h-full ${getPriorityColor(req.priority)} opacity-80`}></div>
+      {/* Línea de color por TIPO DE SOLICITUD (colorimetría) */}
+      <div className={`absolute top-0 left-0 w-1.5 h-full ${typeColors.line} opacity-90`}></div>
 
       <div className="pl-3">
+        {/* Header con folio y prioridad */}
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-bold ${isExactMatch ? 'text-primary' : 'text-muted-dark'}`}>{req.id}</span>
@@ -103,8 +129,12 @@ const KanbanCard = memo<KanbanCardProps>(({
           }`}>{req.priority}</span>
         </div>
 
-        {/* Video Type and Board Badges */}
+        {/* Badges: Tipo de solicitud + Video Type + Board */}
         <div className="flex flex-wrap gap-1.5 mb-3">
+          {/* Badge de TIPO DE SOLICITUD (visible - colorimetría) */}
+          <span className={`px-1.5 py-0.5 rounded-lg text-[9px] font-bold border ${typeColors.bg} ${typeColors.text} ${typeColors.border}`}>
+            {req.type}
+          </span>
           {req.video_type && (
             <span className={`px-1.5 py-0.5 rounded-lg text-[9px] font-bold border ${getVideoTypeBadgeStyles(req.video_type)}`}>
               {VIDEO_TYPE_LABELS[req.video_type] || req.video_type}
@@ -117,12 +147,19 @@ const KanbanCard = memo<KanbanCardProps>(({
           )}
         </div>
 
+        {/* Producto y Cliente */}
         <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none line-clamp-2" title={req.product}>{req.product}</h4>
-        <p className="text-sm text-muted-dark mb-5 truncate select-none" title={req.client}>{req.client}</p>
+        <p className="text-sm text-muted-dark mb-3 truncate select-none" title={req.client}>{req.client}</p>
 
-        <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
+        {/* Cronómetro de tiempo transcurrido */}
+        <div className="mb-3">
+          <ActivityCountdown createdAt={req.rawDate} status={req.status} compact />
+        </div>
+
+        {/* Footer con asesor y fecha */}
+        <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-7 h-7 rounded-full bg-gray-700 text-[10px] flex items-center justify-center text-white mr-2 border-2 border-white/10 font-bold">
+            <div className="w-6 h-6 rounded-full bg-gray-700 text-[9px] flex items-center justify-center text-white mr-2 border-2 border-white/10 font-bold">
               {req.advisorInitials}
             </div>
             <span className="text-xs text-muted-dark select-none">{req.date}</span>
@@ -135,18 +172,20 @@ const KanbanCard = memo<KanbanCardProps>(({
 
 KanbanCard.displayName = 'KanbanCard';
 
-const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusChange, onViewDetail, onDuplicate, selectedBoard }) => {
+const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusChange, onViewDetail, onDuplicate, selectedBoard, loading = false }) => {
+  // TODOS los hooks deben ir ANTES de cualquier return condicional
   const [localSearch, setLocalSearch] = useState('');
   const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
   const [activeDropZone, setActiveDropZone] = useState<RequestStatus | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Track how many items to show per section
-  const [sectionLimits, setSectionLimits] = useState<Record<RequestStatus, number>>({
-    'Pendiente': ITEMS_PER_SECTION,
-    'En Producción': ITEMS_PER_SECTION,
-    'Corrección': ITEMS_PER_SECTION,
-    'Listo': ITEMS_PER_SECTION,
-    'Entregado': ITEMS_PER_SECTION,
+  // Track how many items to show per column
+  const [columnLimits, setColumnLimits] = useState<Record<RequestStatus, number>>({
+    'Pendiente': ITEMS_PER_COLUMN,
+    'En Producción': ITEMS_PER_COLUMN,
+    'Corrección': ITEMS_PER_COLUMN,
+    'Listo': ITEMS_PER_COLUMN,
+    'Entregado': ITEMS_PER_COLUMN,
   });
 
   const processedRequests = useMemo(() => {
@@ -198,7 +237,7 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
   }, [onStatusChange]);
 
   const handleLoadMore = useCallback((status: RequestStatus) => {
-    setSectionLimits(prev => ({
+    setColumnLimits(prev => ({
       ...prev,
       [status]: prev[status] + LOAD_MORE_INCREMENT
     }));
@@ -212,24 +251,85 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
     onDuplicate(request);
   }, [onDuplicate]);
 
+  // Skeleton Loading Component - DESPUÉS de todos los hooks
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col h-full"
+      >
+        {/* Header Skeleton */}
+        <div className="glass border border-white/10 p-5 rounded-2xl shadow-apple mb-6 animate-pulse">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="h-6 w-40 bg-white/10 rounded-lg mb-2"></div>
+              <div className="h-4 w-56 bg-white/5 rounded-lg"></div>
+            </div>
+            <div className="h-10 w-64 bg-white/10 rounded-xl"></div>
+          </div>
+        </div>
+
+        {/* Columns Skeleton */}
+        <div className="flex-1 overflow-hidden">
+          <div className="flex h-full gap-5 px-1">
+            {COLUMNS.map((status) => (
+              <div key={status} className="min-w-[300px] max-w-[320px] rounded-2xl border border-white/10 bg-white/5 animate-pulse">
+                {/* Column Header */}
+                <div className="px-4 py-3 border-b border-white/10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-white/20"></div>
+                      <div className="h-4 w-24 bg-white/10 rounded"></div>
+                    </div>
+                    <div className="h-5 w-8 bg-white/10 rounded-full"></div>
+                  </div>
+                </div>
+                {/* Cards Skeleton */}
+                <div className="p-3 space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="glass p-4 rounded-2xl border border-white/10">
+                      <div className="h-4 w-20 bg-white/10 rounded mb-3"></div>
+                      <div className="flex gap-1.5 mb-3">
+                        <div className="h-5 w-16 bg-white/10 rounded-lg"></div>
+                        <div className="h-5 w-14 bg-white/10 rounded-lg"></div>
+                      </div>
+                      <div className="h-5 w-full bg-white/10 rounded mb-2"></div>
+                      <div className="h-4 w-3/4 bg-white/5 rounded mb-4"></div>
+                      <div className="pt-3 border-t border-white/10 flex items-center">
+                        <div className="w-6 h-6 rounded-full bg-white/10 mr-2"></div>
+                        <div className="h-3 w-20 bg-white/5 rounded"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={springConfig.gentle}
-      className="space-y-8 pb-12"
+      className="flex flex-col h-full"
     >
       {/* Search Bar Section */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springConfig.snappy}
-        className="glass border border-white/10 p-6 rounded-2xl shadow-apple"
+        className="glass border border-white/10 p-5 rounded-2xl shadow-apple mb-6 flex-shrink-0"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              Tablero de Producción
+              <span className="material-icons-round text-primary">view_kanban</span>
+              Tablero Kanban
               {selectedBoard !== null && (
                 <motion.span
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -241,8 +341,8 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
               )}
             </h2>
             <p className="text-sm text-muted-dark">
-              Gestiona el flujo de trabajo arrastrando las tarjetas.
-              {processedRequests.length > 50 && (
+              Gestión visual de tareas por estado.
+              {processedRequests.length > 0 && (
                 <span className="ml-2 text-primary">({processedRequests.length} solicitudes)</span>
               )}
             </p>
@@ -255,14 +355,14 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
               type="text"
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder="Buscar por folio (ej. #REQ-2094)"
+              placeholder="Buscar cliente, actividad o ID..."
               className="w-full glass border border-white/10 text-sm text-white rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 apple-transition placeholder-muted-dark"
             />
           </div>
         </div>
       </motion.div>
 
-      {/* Content */}
+      {/* Kanban Board - Layout Horizontal */}
       {processedRequests.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -272,106 +372,115 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/5 mb-4">
             <span className="material-icons-round text-muted-dark text-3xl">search_off</span>
           </div>
-          <h3 className="text-lg font-bold text-white">No se encontró ese folio</h3>
-          <p className="text-muted-dark mt-1">Intenta buscar con otro número o verifica el filtro.</p>
+          <h3 className="text-lg font-bold text-white">No se encontraron solicitudes</h3>
+          <p className="text-muted-dark mt-1">Intenta buscar con otro término o verifica el filtro.</p>
         </motion.div>
       ) : (
-        <div className="space-y-10">
-          {SECTIONS.map((status, sectionIdx) => {
-            const allSectionRequests = processedRequests.filter(r => r.status === status);
-            const currentLimit = sectionLimits[status];
-            const sectionRequests = allSectionRequests.slice(0, currentLimit);
-            const hasMore = allSectionRequests.length > currentLimit;
-            const remainingCount = allSectionRequests.length - currentLimit;
-            const isDropZoneActive = activeDropZone === status;
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-x-auto overflow-y-hidden pb-4"
+        >
+          {/* Contenedor horizontal de columnas */}
+          <div className="flex h-full gap-5 min-w-[1500px] px-1">
+            {COLUMNS.map((status, colIdx) => {
+              const allColumnRequests = processedRequests.filter(r => r.status === status);
+              const currentLimit = columnLimits[status];
+              const columnRequests = allColumnRequests.slice(0, currentLimit);
+              const hasMore = allColumnRequests.length > currentLimit;
+              const remainingCount = allColumnRequests.length - currentLimit;
+              const isDropZoneActive = activeDropZone === status;
+              const colStyles = getColumnStyles(status);
 
-            if (allSectionRequests.length === 0 && localSearch && !draggedRequestId) return null;
-
-            return (
-              <motion.div
-                key={status}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...springConfig.gentle, delay: sectionIdx * 0.05 }}
-                className={`
-                  space-y-4 rounded-2xl apple-transition
-                  ${isDropZoneActive ? 'bg-primary/5 ring-2 ring-primary border-transparent p-4 -m-4' : ''}
-                `}
-                onDragOver={(e) => handleDragOver(e, status)}
-                onDrop={(e) => handleDrop(e, status)}
-              >
-                {/* Section Header */}
-                <div className="flex items-center space-x-3 border-b border-white/10 pb-3">
-                  <motion.div
-                    whileHover={{ scale: 1.2 }}
-                    className={`w-3 h-3 rounded-full ${status === 'Listo' ? 'bg-primary' : status === 'En Producción' ? 'bg-purple-500' : status === 'Corrección' ? 'bg-orange-500' : status === 'Entregado' ? 'bg-blue-500' : 'bg-yellow-500'}`}
-                  />
-                  <h3 className="text-xl font-bold text-white">{status}</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold glass border border-white/10 text-muted-dark">
-                    {allSectionRequests.length}
-                  </span>
-                  {hasMore && (
-                    <span className="text-xs text-muted-dark">
-                      (mostrando {sectionRequests.length})
-                    </span>
-                  )}
-                </div>
-
-                {/* Grid */}
-                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 min-h-[100px] ${isDropZoneActive ? 'opacity-80' : ''}`}>
-                  <AnimatePresence mode="popLayout">
-                    {sectionRequests.map((req, idx) => {
-                      const isExactMatch = localSearch && req.id.toLowerCase() === localSearch.toLowerCase();
-                      const isDragging = draggedRequestId === req.id;
-
-                      return (
-                        <KanbanCard
-                          key={req.id}
-                          req={req}
-                          idx={idx}
-                          isExactMatch={!!isExactMatch}
-                          isDragging={isDragging}
-                          onDragStart={handleDragStart}
-                          onDragEnd={handleDragEnd}
-                          onViewDetail={handleViewDetail}
-                          onDuplicate={handleDuplicate}
+              return (
+                <motion.div
+                  key={status}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...springConfig.gentle, delay: colIdx * 0.05 }}
+                  className={`
+                    flex flex-col h-full w-full min-w-[300px] max-w-[320px] rounded-2xl border
+                    ${isDropZoneActive
+                      ? `${colStyles.bg} border-2 ${colStyles.border} ring-2 ring-primary/30`
+                      : `${colStyles.bg} ${colStyles.border}`
+                    }
+                    apple-transition
+                  `}
+                  onDragOver={(e) => handleDragOver(e, status)}
+                  onDrop={(e) => handleDrop(e, status)}
+                >
+                  {/* Column Header - Sticky */}
+                  <div className={`sticky top-0 z-10 px-4 py-3 rounded-t-2xl ${colStyles.header} border-b ${colStyles.border} backdrop-blur-sm`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <motion.div
+                          whileHover={{ scale: 1.2 }}
+                          className={`w-2.5 h-2.5 rounded-full ${colStyles.dot}`}
                         />
-                      );
-                    })}
-                  </AnimatePresence>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wide">{status}</h3>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold glass border border-white/10 text-white">
+                        {allColumnRequests.length}
+                      </span>
+                    </div>
+                  </div>
 
-                  {sectionRequests.length === 0 && !localSearch && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.6 }}
-                      className="col-span-full py-6 flex items-center justify-center border-2 border-dashed border-white/10 rounded-2xl"
-                    >
-                      <p className="text-xs text-muted-dark pointer-events-none">Arrastra tarjetas aquí</p>
-                    </motion.div>
-                  )}
-                </div>
+                  {/* Column Content - Scrollable */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                    <AnimatePresence mode="popLayout">
+                      {columnRequests.map((req, idx) => {
+                        const isExactMatch = localSearch && req.id.toLowerCase() === localSearch.toLowerCase();
+                        const isDragging = draggedRequestId === req.id;
 
-                {/* Load More Button */}
-                {hasMore && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex justify-center pt-2"
-                  >
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={buttonTap}
-                      onClick={() => handleLoadMore(status)}
-                      className="px-6 py-2.5 glass border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/5 hover:border-primary/30 apple-transition flex items-center gap-2"
-                    >
-                      <span className="material-icons-round text-lg">expand_more</span>
-                      Cargar más ({remainingCount} restantes)
-                    </motion.button>
-                  </motion.div>
-                )}
-              </motion.div>
-            );
-          })}
+                        return (
+                          <KanbanCard
+                            key={req.id}
+                            req={req}
+                            idx={idx}
+                            isExactMatch={!!isExactMatch}
+                            isDragging={isDragging}
+                            onDragStart={handleDragStart}
+                            onDragEnd={handleDragEnd}
+                            onViewDetail={handleViewDetail}
+                            onDuplicate={handleDuplicate}
+                          />
+                        );
+                      })}
+                    </AnimatePresence>
+
+                    {columnRequests.length === 0 && !localSearch && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.6 }}
+                        className="py-8 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-xl"
+                      >
+                        <span className="material-icons-round text-muted-dark text-2xl mb-2">drag_indicator</span>
+                        <p className="text-xs text-muted-dark text-center">Arrastra tarjetas aquí</p>
+                      </motion.div>
+                    )}
+
+                    {/* Load More Button */}
+                    {hasMore && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="pt-2"
+                      >
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={buttonTap}
+                          onClick={() => handleLoadMore(status)}
+                          className="w-full px-4 py-2 glass border border-white/10 rounded-xl text-xs font-medium text-white hover:bg-white/5 hover:border-primary/30 apple-transition flex items-center justify-center gap-1"
+                        >
+                          <span className="material-icons-round text-sm">expand_more</span>
+                          Cargar más ({remainingCount})
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       )}
     </motion.div>

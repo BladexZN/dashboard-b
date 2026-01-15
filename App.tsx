@@ -37,11 +37,14 @@ const App: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [advisorsList, setAdvisorsList] = useState<User[]>([]);
   const [productores, setProductores] = useState<Productor[]>([]);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
   // Guard for race conditions
   const fetchIdRef = useRef(0);
+
+  // Flag para saber si la carga inicial ya terminó (evita mostrar loader al navegar)
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Notification Systems
   const [toastNotifications, setToastNotifications] = useState<Notification[]>([]); 
@@ -440,7 +443,10 @@ const App: React.FC = () => {
         setDataError(err.message || "Error al cargar datos");
       }
     } finally {
-      if (currentFetchId === fetchIdRef.current) setDataLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setDataLoading(false);
+        setInitialLoadComplete(true);
+      }
     }
   }, [session, currentPage, dateFilter, fetchDeletedData]);
 
@@ -702,10 +708,10 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (dataError) {
       return (
-        <div class="flex flex-col items-center justify-center h-96">
-          <span class="material-icons-round text-4xl text-red-500 mb-2">error_outline</span>
-          <p class="text-text-light dark:text-white font-medium mb-4">{dataError}</p>
-          <button onClick={fetchAllData} class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">Reintentar</button>
+        <div className="flex flex-col items-center justify-center h-96">
+          <span className="material-icons-round text-4xl text-red-500 mb-2">error_outline</span>
+          <p className="text-text-light dark:text-white font-medium mb-4">{dataError}</p>
+          <button onClick={fetchAllData} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">Reintentar</button>
         </div>
       );
     }
@@ -713,13 +719,13 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'dashboard':
         return (
-           <div class="space-y-8 animate-in fade-in duration-500">
+           <div className="space-y-8 animate-in fade-in duration-500">
              <StatsRow stats={dashboardStats} loading={dataLoading} />
              <Widgets requests={dashboardRequests} loading={dataLoading} />
-             <div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-1">
-                <div class="px-5 py-4 border-b border-border-light dark:border-border-dark mb-0 flex justify-between items-center">
-                  <h3 class="font-bold text-text-light dark:text-white">Dataset Filtrado del Dashboard</h3>
-                  <span class="text-[10px] text-muted-dark bg-surface-darker px-2 py-0.5 rounded border border-border-dark">
+             <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-1">
+                <div className="px-5 py-4 border-b border-border-light dark:border-border-dark mb-0 flex justify-between items-center">
+                  <h3 className="font-bold text-text-light dark:text-white">Dataset Filtrado del Dashboard</h3>
+                  <span className="text-[10px] text-muted-dark bg-surface-darker px-2 py-0.5 rounded border border-border-dark">
                     Mostrando {dataLoading ? '...' : filteredDashboardRequests.length} resultados ({dateFilter})
                   </span>
                 </div>
@@ -763,7 +769,7 @@ const App: React.FC = () => {
           />
         );
       case 'produccion':
-        return <ProductionKanban requests={filteredRequests} onStatusChange={handleStatusChange} onViewDetail={setDetailModalRequest} onDuplicate={handleDuplicate} selectedBoard={selectedBoard} />;
+        return <ProductionKanban requests={filteredRequests} onStatusChange={handleStatusChange} onViewDetail={setDetailModalRequest} onDuplicate={handleDuplicate} selectedBoard={selectedBoard} loading={dataLoading} />;
       case 'bitacora':
         return <AuditLogView logs={auditLogs} deletedRequests={deletedRequests} onRestore={handleRestore} />;
       case 'reportes':
@@ -782,11 +788,11 @@ const App: React.FC = () => {
   // Show loading screen during cross-project authentication
   if (crossLoginStatus === 'validating') {
     return (
-      <div class="h-screen w-screen flex items-center justify-center bg-background-dark">
-        <div class="flex flex-col items-center">
-          <div class="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
-          <p class="text-white text-sm">Autenticando desde Master Dashboard...</p>
-          <p class="text-gray-500 text-xs mt-2">Por favor espere</p>
+      <div className="h-screen w-screen flex items-center justify-center bg-background-dark">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+          <p className="text-white text-sm">Autenticando desde Master Dashboard...</p>
+          <p className="text-gray-500 text-xs mt-2">Por favor espere</p>
         </div>
       </div>
     );
@@ -795,14 +801,14 @@ const App: React.FC = () => {
   // Show error screen if cross-login failed
   if (crossLoginStatus === 'error') {
     return (
-      <div class="h-screen w-screen flex items-center justify-center bg-background-dark">
-        <div class="flex flex-col items-center max-w-md px-4">
-          <span class="material-icons-round text-5xl text-red-500 mb-4">error_outline</span>
-          <p class="text-white text-lg mb-2">Error de autenticación</p>
-          <p class="text-gray-400 text-sm mb-6 text-center">{crossLoginError}</p>
+      <div className="h-screen w-screen flex items-center justify-center bg-background-dark">
+        <div className="flex flex-col items-center max-w-md px-4">
+          <span className="material-icons-round text-5xl text-red-500 mb-4">error_outline</span>
+          <p className="text-white text-lg mb-2">Error de autenticación</p>
+          <p className="text-gray-400 text-sm mb-6 text-center">{crossLoginError}</p>
           <button
             onClick={() => setCrossLoginStatus('idle')}
-            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
           >
             Ir al login normal
           </button>
@@ -813,10 +819,10 @@ const App: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div class="h-screen w-screen flex items-center justify-center bg-background-dark">
-        <div class="flex flex-col items-center">
-          <div class="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
-          <p class="text-white text-sm animate-pulse">Cargando sistema...</p>
+      <div className="h-screen w-screen flex items-center justify-center bg-background-dark">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+          <p className="text-white text-sm animate-pulse">Cargando sistema...</p>
         </div>
       </div>
     );
@@ -824,25 +830,34 @@ const App: React.FC = () => {
 
   if (!session) return <Login />;
 
+  // Loader global SOLO en carga inicial (no al navegar entre páginas)
+  if (!initialLoadComplete) {
+    return (
+      <div className="h-screen w-screen bg-[#0D0D0D] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <div class="flex h-screen bg-background-light dark:bg-background-dark overflow-hidden font-sans text-text-light dark:text-text-dark">
+    <div className="flex h-screen bg-background-light dark:bg-background-dark overflow-hidden font-sans text-text-light dark:text-text-dark">
       <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} selectedBoard={selectedBoard} onSelectBoard={setSelectedBoard} />
-      <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <Header 
           title={pageTitle} notifications={inboxNotifications} unreadCount={unreadCount} onMarkRead={markNotificationRead} onMarkAllRead={markAllNotificationsRead} dateFilter={dateFilter} onDateFilterChange={setDateFilter} showFilters={currentPage === 'dashboard' || currentPage === 'reportes'} userProfile={userProfile} onLogout={handleLogout}
         />
-        <div class="flex-1 overflow-y-auto p-8 scroll-smooth">
-           <div class="max-w-[1600px] mx-auto pb-8 h-full">
+        <div className="flex-1 overflow-y-auto p-8 scroll-smooth">
+           <div className="max-w-[1600px] mx-auto pb-8 h-full">
              {renderContent()}
            </div>
         </div>
         <NewRequestModal isOpen={isNewModalOpen} onClose={() => { setIsNewModalOpen(false); setEditingRequest(null); }} onSave={handleSaveRequest} initialData={editingRequest} advisors={advisorsList} currentUser={userProfile} />
         <RequestDetailModal isOpen={!!detailModalRequest} onClose={() => setDetailModalRequest(null)} request={detailModalRequest} onUpdate={fetchAllData} />
-        <div class="absolute bottom-8 right-8 z-50 flex flex-col gap-2 pointer-events-none">
+        <div className="absolute bottom-8 right-8 z-50 flex flex-col gap-2 pointer-events-none">
           {toastNotifications.map(n => (
-            <div key={n.id} class="bg-surface-dark border border-border-dark text-white px-4 py-3 rounded-lg shadow-2xl flex items-center animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
+            <div key={n.id} className="bg-surface-dark border border-border-dark text-white px-4 py-3 rounded-lg shadow-2xl flex items-center animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
               <span class={`material-icons-round mr-2 ${n.type === 'success' ? 'text-primary' : 'text-blue-400'}`}>{n.type === 'success' ? 'check_circle' : 'info'}</span>
-              <span class="text-sm font-medium">{n.message}</span>
+              <span className="text-sm font-medium">{n.message}</span>
             </div>
           ))}
         </div>
