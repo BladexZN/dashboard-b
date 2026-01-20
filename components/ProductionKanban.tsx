@@ -201,7 +201,13 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
       filtered = filtered.filter(r => {
         const folio = r.id.toLowerCase();
         const folioNumber = folio.replace('#req-', '').replace('#', '');
-        return folio.includes(query) || folioNumber.includes(query);
+        const client = (r.client || '').toLowerCase();
+        const product = (r.product || '').toLowerCase();
+
+        return folio.includes(query) ||
+               folioNumber.includes(query) ||
+               client.includes(query) ||
+               product.includes(query);
       });
     }
 
