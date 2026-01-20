@@ -457,9 +457,11 @@ const App: React.FC = () => {
     if (session) fetchAllData();
   }, [session, fetchAllData]);
 
-  // Real-time subscription for live updates
+  // Real-time subscription for live updates with fallback polling
   useEffect(() => {
     if (!session) return;
+
+    let isRealtimeConnected = false;
 
     const channel = supabase
       .channel('workload-realtime')
@@ -485,9 +487,20 @@ const App: React.FC = () => {
           fetchAllData();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        isRealtimeConnected = status === 'SUBSCRIBED';
+      });
+
+    // Fallback polling every 30 seconds to ensure data sync
+    // This guarantees updates even if realtime fails silently
+    const pollingInterval = setInterval(() => {
+      console.log('Polling: Refreshing data (realtime connected:', isRealtimeConnected, ')');
+      fetchAllData();
+    }, 30000);
 
     return () => {
+      clearInterval(pollingInterval);
       supabase.removeChannel(channel);
     };
   }, [session, fetchAllData]);
