@@ -468,7 +468,13 @@ const App: React.FC = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'solicitudes' },
-        () => {
+        (payload) => {
+          // Skip refetch if this was a local status change (e.g., completed_at update for Entregado)
+          const changedId = payload.new?.id || payload.old?.id;
+          if (localStatusChangeRef.current === changedId) {
+            console.log('Realtime: solicitudes changed (local, skipping refetch)');
+            return;
+          }
           console.log('Realtime: solicitudes changed');
           fetchAllData();
         }
