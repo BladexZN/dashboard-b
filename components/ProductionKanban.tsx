@@ -63,70 +63,76 @@ const KanbanCard = memo<KanbanCardProps>(({
   return (
     <motion.div
       key={req.id}
-      initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : false}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={shouldAnimate ? { opacity: 0, scale: 0.9 } : undefined}
-      transition={shouldAnimate ? { ...springConfig.snappy, delay: idx * 0.015 } : { duration: 0.1 }}
-      whileHover={{ y: -4, scale: 1.02 }}
+      layout
+      initial={shouldAnimate ? { opacity: 0, y: 10 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      exit={shouldAnimate ? { opacity: 0, scale: 0.95 } : undefined}
+      transition={shouldAnimate ? springConfig.snappy : { duration: 0.1 }}
+      whileHover={{ y: -2, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
       draggable
       onDragStart={(e) => onDragStart(e as any, req.id)}
       onDragEnd={onDragEnd}
       onClick={() => onViewDetail(req)}
       className={`
-        glass p-5 rounded-2xl border flex flex-col relative overflow-hidden group
-        ${isDragging ? 'opacity-40 scale-95 ring-2 ring-primary/50' : 'opacity-100'}
-        ${isExactMatch
-          ? 'border-primary ring-2 ring-primary shadow-apple-glow z-10'
-          : 'border-white/10 hover:border-primary/50 shadow-apple'}
-        apple-transition cursor-grab active:cursor-grabbing
+        relative p-3 rounded-xl border select-none cursor-grab active:cursor-grabbing
+        ${isDragging
+          ? 'opacity-60 scale-[1.02] border-primary shadow-apple-glow bg-white/5 z-50 ring-1 ring-primary'
+          : 'glass border-white/10 hover:border-primary/40 hover:shadow-apple'}
+        ${isExactMatch ? 'border-primary ring-2 ring-primary shadow-apple-glow z-10' : ''}
       `}
     >
-      {/* Accent Line */}
-      <div className={`absolute top-0 left-0 w-1 h-full ${getPriorityColor(req.priority)} opacity-80`}></div>
+      {/* Top Row: Client Label */}
+      <div className="flex justify-between items-start mb-2 relative z-10">
+        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider truncate max-w-[180px]">
+          {req.client}
+        </span>
+        <span className="text-[10px] text-gray-600">
+          {req.id.replace('#REQ-', '')}
+        </span>
+      </div>
 
-      <div className="pl-3">
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-bold ${isExactMatch ? 'text-primary' : 'text-muted-dark'}`}>{req.id}</span>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={(e) => { e.stopPropagation(); onDuplicate(req); }}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-muted-dark hover:text-blue-400 hover:bg-blue-500/10 apple-transition"
-              title="Duplicar solicitud"
-            >
-              <span className="material-icons-round text-sm">content_copy</span>
-            </motion.button>
+      {/* Main Title */}
+      <h4 className="text-sm font-bold text-white mb-2 leading-snug relative z-10 line-clamp-2" title={req.product}>
+        {req.product}
+      </h4>
+
+      {/* Badges Row */}
+      <div className="flex flex-wrap gap-1.5 mb-2 relative z-10">
+        {/* Video Type Badge */}
+        {req.video_type && (
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getVideoTypeBadgeStyles(req.video_type)}`}>
+            {VIDEO_TYPE_LABELS[req.video_type] || req.video_type}
+          </span>
+        )}
+        {/* Board Badge */}
+        {req.board_number && (
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/15 border border-primary/30 text-primary">
+            {BOARD_NAMES[req.board_number].split(' ')[1]}
+          </span>
+        )}
+        {/* Priority Badge - only show if high/urgent */}
+        {(req.priority === 'Alta' || req.priority === 'Urgente') && (
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/15 border border-red-500/30 text-red-400">
+            {req.priority}
+          </span>
+        )}
+      </div>
+
+      {/* Bottom Row: User & Date */}
+      <div className="flex items-center justify-between border-t border-white/10 pt-2 relative z-10">
+        <div className="flex items-center space-x-1.5">
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/30 flex items-center justify-center text-[9px] text-primary font-bold shadow-sm">
+            {req.advisorInitials}
           </div>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-lg uppercase font-bold tracking-wider ${
-            req.priority === 'Urgente' ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-muted-dark bg-white/5 border border-white/10'
-          }`}>{req.priority}</span>
+          <span className="text-[10px] font-bold text-gray-400 truncate max-w-[70px]">
+            {req.advisor?.split(' ')[0] || ''}
+          </span>
         </div>
-
-        {/* Video Type and Board Badges */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {req.video_type && (
-            <span className={`px-1.5 py-0.5 rounded-lg text-[9px] font-bold border ${getVideoTypeBadgeStyles(req.video_type)}`}>
-              {VIDEO_TYPE_LABELS[req.video_type] || req.video_type}
-            </span>
-          )}
-          {req.board_number && (
-            <span className="px-1.5 py-0.5 rounded-lg text-[9px] font-bold bg-primary/10 text-primary border border-primary/30">
-              {BOARD_NAMES[req.board_number].split(' ')[1]}
-            </span>
-          )}
-        </div>
-
-        <h4 className="text-base font-bold text-white mb-1 leading-snug pr-2 select-none line-clamp-2" title={req.product}>{req.product}</h4>
-        <p className="text-sm text-muted-dark mb-5 truncate select-none" title={req.client}>{req.client}</p>
-
-        <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="w-7 h-7 rounded-full bg-gray-700 text-[10px] flex items-center justify-center text-white mr-2 border-2 border-white/10 font-bold">
-              {req.advisorInitials}
-            </div>
-            <span className="text-xs text-muted-dark select-none">{req.date}</span>
-          </div>
+        <div className="bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+          <span className="text-[9px] text-gray-400">
+            {req.date}
+          </span>
         </div>
       </div>
     </motion.div>
@@ -216,7 +222,7 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={springConfig.gentle}
-      className="space-y-8 pb-12"
+      className="h-[calc(100vh-180px)] flex flex-col"
     >
       {/* Search Bar Section */}
       <motion.div
@@ -275,7 +281,7 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
           <p className="text-muted-dark mt-1">Intenta buscar con otro número o verifica el filtro.</p>
         </motion.div>
       ) : (
-        <div className="space-y-10">
+        <div className="flex gap-5 overflow-x-auto flex-1 px-1 pb-4" style={{ minWidth: '1400px' }}>
           {SECTIONS.map((status, sectionIdx) => {
             const allSectionRequests = processedRequests.filter(r => r.status === status);
             const currentLimit = sectionLimits[status];
@@ -293,31 +299,28 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...springConfig.gentle, delay: sectionIdx * 0.05 }}
                 className={`
-                  space-y-4 rounded-2xl apple-transition
-                  ${isDropZoneActive ? 'bg-primary/5 ring-2 ring-primary border-transparent p-4 -m-4' : ''}
+                  flex flex-col min-w-[300px] max-w-[320px] flex-shrink-0 rounded-2xl glass border border-white/10 apple-transition h-full
+                  ${isDropZoneActive ? 'bg-primary/5 ring-2 ring-primary border-primary' : ''}
                 `}
                 onDragOver={(e) => handleDragOver(e, status)}
                 onDrop={(e) => handleDrop(e, status)}
               >
                 {/* Section Header */}
-                <div className="flex items-center space-x-3 border-b border-white/10 pb-3">
-                  <motion.div
-                    whileHover={{ scale: 1.2 }}
-                    className={`w-3 h-3 rounded-full ${status === 'Entregado' ? 'bg-green-500' : status === 'En Producción' ? 'bg-purple-500' : status === 'Corrección' ? 'bg-orange-500' : 'bg-yellow-500'}`}
-                  />
-                  <h3 className="text-xl font-bold text-white">{status}</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold glass border border-white/10 text-muted-dark">
+                <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+                  <div className="flex items-center space-x-2">
+                    <motion.div
+                      whileHover={{ scale: 1.2 }}
+                      className={`w-2.5 h-2.5 rounded-full ${status === 'Entregado' ? 'bg-green-500' : status === 'En Producción' ? 'bg-purple-500' : status === 'Corrección' ? 'bg-orange-500' : 'bg-yellow-500'}`}
+                    />
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">{status}</h3>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-white/5 text-primary border border-primary/20">
                     {allSectionRequests.length}
                   </span>
-                  {hasMore && (
-                    <span className="text-xs text-muted-dark">
-                      (mostrando {sectionRequests.length})
-                    </span>
-                  )}
                 </div>
 
-                {/* Grid */}
-                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 min-h-[100px] ${isDropZoneActive ? 'opacity-80' : ''}`}>
+                {/* Cards Container - Vertical Stack with Scroll */}
+                <div className={`flex-1 overflow-y-auto space-y-3 p-3 ${isDropZoneActive ? 'opacity-80' : ''}`} style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
                   <AnimatePresence mode="popLayout">
                     {sectionRequests.map((req, idx) => {
                       const isExactMatch = localSearch && req.id.toLowerCase() === localSearch.toLowerCase();
@@ -343,7 +346,7 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.6 }}
-                      className="col-span-full py-6 flex items-center justify-center border-2 border-dashed border-white/10 rounded-2xl"
+                      className="py-8 flex items-center justify-center border-2 border-dashed border-white/10 rounded-2xl min-h-[120px]"
                     >
                       <p className="text-xs text-muted-dark pointer-events-none">Arrastra tarjetas aquí</p>
                     </motion.div>
@@ -355,16 +358,16 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex justify-center pt-2"
+                    className="flex justify-center p-3 border-t border-white/10 flex-shrink-0"
                   >
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={buttonTap}
                       onClick={() => handleLoadMore(status)}
-                      className="px-6 py-2.5 glass border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/5 hover:border-primary/30 apple-transition flex items-center gap-2"
+                      className="w-full py-2 glass border border-white/10 rounded-xl text-xs font-medium text-white hover:bg-white/5 hover:border-primary/30 apple-transition flex items-center justify-center gap-1"
                     >
-                      <span className="material-icons-round text-lg">expand_more</span>
-                      Cargar más ({remainingCount} restantes)
+                      <span className="material-icons-round text-sm">expand_more</span>
+                      +{remainingCount} más
                     </motion.button>
                   </motion.div>
                 )}
