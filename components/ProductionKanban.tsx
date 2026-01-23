@@ -13,7 +13,7 @@ interface ProductionKanbanProps {
   loading?: boolean;
 }
 
-const COLUMNS: RequestStatus[] = ['Pendiente', 'En Producción', 'Corrección', 'Listo', 'Entregado'];
+const COLUMNS: RequestStatus[] = ['Pendiente', 'En Producción', 'Corrección', 'Entregado'];
 
 // Items to show per column initially, then load more
 const ITEMS_PER_COLUMN = 12;
@@ -39,8 +39,6 @@ const getColumnStyles = (status: RequestStatus) => {
       return { bg: 'bg-purple-500/5', border: 'border-purple-500/20', header: 'bg-purple-500/10', dot: 'bg-purple-500' };
     case 'Corrección':
       return { bg: 'bg-orange-500/5', border: 'border-orange-500/20', header: 'bg-orange-500/10', dot: 'bg-orange-500' };
-    case 'Listo':
-      return { bg: 'bg-primary/5', border: 'border-primary/20', header: 'bg-primary/10', dot: 'bg-primary' };
     case 'Entregado':
       return { bg: 'bg-blue-500/5', border: 'border-blue-500/20', header: 'bg-blue-500/10', dot: 'bg-blue-500' };
     default:
@@ -185,7 +183,6 @@ const ProductionKanban: React.FC<ProductionKanbanProps> = ({ requests, onStatusC
     'Pendiente': ITEMS_PER_COLUMN,
     'En Producción': ITEMS_PER_COLUMN,
     'Corrección': ITEMS_PER_COLUMN,
-    'Listo': ITEMS_PER_COLUMN,
     'Entregado': ITEMS_PER_COLUMN,
   });
 

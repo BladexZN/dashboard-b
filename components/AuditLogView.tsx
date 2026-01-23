@@ -148,8 +148,7 @@ const AuditLogView: React.FC<AuditLogViewProps> = ({ logs, deletedRequests = [],
                             ${log.status === 'Pendiente' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : ''}
                             ${log.status === 'En Producción' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : ''}
                             ${log.status === 'Corrección' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : ''}
-                            ${log.status === 'Listo' ? 'bg-primary/10 text-primary border-primary/20' : ''}
-                            ${log.status === 'Entregado' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : ''}
+                            ${log.status === 'Entregado' ? 'bg-green-500/10 text-green-400 border-green-500/20' : ''}
                           `}>
                             {log.status}
                           </span>

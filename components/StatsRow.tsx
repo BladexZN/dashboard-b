@@ -39,7 +39,7 @@ const StatsRow: React.FC<StatsRowProps> = ({ stats, loading }) => {
       hoverBg: "group-hover:bg-purple-500"
     },
     {
-      title: "Listo / Entregado",
+      title: "Entregado",
       value: stats.completed,
       icon: "check_circle",
       colorClass: "text-primary",

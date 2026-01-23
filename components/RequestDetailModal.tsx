@@ -313,8 +313,7 @@ const RequestDetailModal: React.FC<RequestDetailModalProps> = ({ isOpen, onClose
       case 'Pendiente': return 'bg-yellow-500 border-yellow-500';
       case 'En Producción': return 'bg-purple-500 border-purple-500';
       case 'Corrección': return 'bg-orange-500 border-orange-500';
-      case 'Listo': return 'bg-primary border-primary';
-      case 'Entregado': return 'bg-blue-500 border-blue-500';
+      case 'Entregado': return 'bg-green-500 border-green-500';
       default: return 'bg-gray-500 border-gray-500';
     }
   };

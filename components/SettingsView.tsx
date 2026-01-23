@@ -97,7 +97,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ requests = [], settings, on
         >
           <div>
             <h3 className="text-sm font-medium text-white">Notificar a Asesor</h3>
-            <p className="text-xs text-muted-dark mt-1">Enviar alerta al inbox del asesor cuando una solicitud pase a estado "Listo".</p>
+            <p className="text-xs text-muted-dark mt-1">Enviar alerta al inbox del asesor cuando una solicitud pase a estado "Entregado".</p>
           </div>
           <motion.button
             whileHover={buttonHover}

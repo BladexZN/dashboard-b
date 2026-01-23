@@ -1,5 +1,5 @@
 
-export type RequestStatus = 'Pendiente' | 'En Producción' | 'Listo' | 'Entregado' | 'Corrección';
+export type RequestStatus = 'Pendiente' | 'En Producción' | 'Entregado' | 'Corrección';
 export type RequestPriority = 'Alta' | 'Media' | 'Baja' | 'Urgente';
 export type RequestType = 'Video completo' | 'Agregado' | 'Variante' | 'Corrección';
 

@@ -23,7 +23,7 @@ export const STATS_DATA: StatCardData[] = [
     bgClass: "bg-purple-500/10 group-hover:bg-purple-500"
   },
   {
-    title: "Listo / Entregado",
+    title: "Entregado",
     value: 0,
     icon: "check_circle",
     colorClass: "text-primary",

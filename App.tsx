@@ -516,7 +516,6 @@ const App: React.FC = () => {
         pendiente: boardRequests.filter(r => r.status === 'Pendiente').length,
         enProduccion: boardRequests.filter(r => r.status === 'En Producción').length,
         correccion: boardRequests.filter(r => r.status === 'Corrección').length,
-        listo: boardRequests.filter(r => r.status === 'Listo').length,
         entregado: boardRequests.filter(r => r.status === 'Entregado').length,
         total: boardRequests.length
       };
@@ -527,7 +526,7 @@ const App: React.FC = () => {
     total: dashboardRequests.length,
     pending: dashboardRequests.filter(r => r.status === 'Pendiente').length,
     production: dashboardRequests.filter(r => r.status === 'En Producción' || r.status === 'Corrección').length,
-    completed: dashboardRequests.filter(r => r.status === 'Listo' || r.status === 'Entregado').length,
+    completed: dashboardRequests.filter(r => r.status === 'Entregado').length,
   }), [dashboardRequests]);
 
   const filteredRequests = useMemo(() => requests.filter(req => {
@@ -628,12 +627,12 @@ const App: React.FC = () => {
         await supabase.from('solicitudes').update({ completed_at: new Date().toISOString() }).eq('id', internalId);
       }
 
-      if (newStatus === 'Listo' && settings.notifyAdvisor && req.advisorId) {
-        await supabase.from('notificaciones').insert([{ user_id: req.advisorId, solicitud_id: internalId, titulo: "Solicitud lista", mensaje: `${req.id} está lista para revisión/entrega.`, tipo: "solicitud_lista", is_read: false }]);
+      if (newStatus === 'Entregado' && settings.notifyAdvisor && req.advisorId) {
+        await supabase.from('notificaciones').insert([{ user_id: req.advisorId, solicitud_id: internalId, titulo: "Solicitud entregada", mensaje: `${req.id} ha sido entregada.`, tipo: "solicitud_entregada", is_read: false }]);
       }
 
-      // Send cross-project notification to Dashboard A for Corrección or Listo status
-      if ((newStatus === 'Corrección' || newStatus === 'Listo') && req.created_by_user_id) {
+      // Send cross-project notification to Dashboard A for Corrección or Entregado status
+      if ((newStatus === 'Corrección' || newStatus === 'Entregado') && req.created_by_user_id) {
         try {
           // Get the email of the original creator
           const { data: creatorData } = await supabase.from('usuarios').select('email').eq('id', req.created_by_user_id).single();
