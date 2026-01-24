@@ -564,6 +564,11 @@ const App: React.FC = () => {
     dashboard: 'Dashboard Overview', solicitudes: 'Solicitudes', produccion: 'Tablero de Producción', bitacora: 'Bitácora Histórica', reportes: 'Reportes y Métricas', usuarios: 'Gestión de Usuarios', 'ads-lab': 'Ads Lab', configuracion: 'Configuración del Sistema'
   }[currentPage];
 
+  const handleEditRequest = (request: RequestData) => {
+    setEditingRequest(request);
+    setIsNewModalOpen(true);
+  };
+
   const handleSoftDelete = async (request: RequestData) => {
     if (!userProfile?.id) return;
     const prevRequests = [...requests];
@@ -779,7 +784,7 @@ const App: React.FC = () => {
                   requests={dataLoading ? [] : filteredDashboardRequests.slice(0, 5)}
                   onStatusChange={handleStatusChange}
                   onNewRequest={() => setIsNewModalOpen(true)}
-                  onEditRequest={setEditingRequest}
+                  onEditRequest={handleEditRequest}
                   onRowClick={setDetailModalRequest}
                   filterStatus={filterStatus}
                   setFilterStatus={setFilterStatus}
@@ -800,7 +805,7 @@ const App: React.FC = () => {
             requests={filteredRequests}
             onStatusChange={handleStatusChange}
             onNewRequest={() => setIsNewModalOpen(true)}
-            onEditRequest={setEditingRequest}
+            onEditRequest={handleEditRequest}
             onRowClick={setDetailModalRequest}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
