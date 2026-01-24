@@ -24,6 +24,16 @@ const getVideoTypeBadgeStyles = (videoType: VideoType) => {
   }
 };
 
+const getRequestTypeBadgeStyles = (type: string) => {
+  switch (type) {
+    case 'Video completo': return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40';
+    case 'Variante': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40';
+    case 'Agregado': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
+    case 'Corrección': return 'bg-amber-500/20 text-amber-400 border-amber-500/40';
+    default: return 'bg-gray-500/20 text-gray-400 border-gray-500/40';
+  }
+};
+
 const getStatusColumnColor = (status: RequestStatus) => {
   switch (status) {
     case 'Pendiente': return 'bg-yellow-500';
@@ -128,6 +138,12 @@ const KanbanCard = React.memo<KanbanCardProps>(({ req, columnId, onClick, onDrag
 
       {/* Badges Row */}
       <div className="flex flex-wrap gap-1.5 mb-2 relative z-10">
+        {/* Request Type Badge (Video completo, Variante, Agregado, Corrección) */}
+        {req.type && (
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getRequestTypeBadgeStyles(req.type)}`}>
+            {req.type}
+          </span>
+        )}
         {/* Video Type Badge */}
         {req.video_type && (
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getVideoTypeBadgeStyles(req.video_type)}`}>
@@ -169,6 +185,7 @@ const KanbanCard = React.memo<KanbanCardProps>(({ req, columnId, onClick, onDrag
 }, (prevProps, nextProps) => {
   return prevProps.req.id === nextProps.req.id
     && prevProps.req.status === nextProps.req.status
+    && prevProps.req.type === nextProps.req.type
     && prevProps.columnId === nextProps.columnId
     && prevProps.isDragging === nextProps.isDragging;
 });
