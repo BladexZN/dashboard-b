@@ -44,7 +44,8 @@ const App: React.FC = () => {
   const fetchIdRef = useRef(0);
 
   // Track local status changes to avoid redundant refetch from realtime
-  const localStatusChangeRef = useRef<string | null>(null);
+  // Using a Set to support multiple concurrent changes
+  const localStatusChangesRef = useRef<Set<string>>(new Set());
 
   // Flag para saber si la carga inicial ya terminó (evita mostrar loader al navegar)
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -311,10 +312,10 @@ const App: React.FC = () => {
 
   const fetchAllData = useCallback(async () => {
     if (!session) return;
-    
+
     // Increment fetch ID for this specific call
     const currentFetchId = ++fetchIdRef.current;
-    
+
     setDataLoading(true);
     setDataError(null);
 
@@ -353,15 +354,24 @@ const App: React.FC = () => {
       const { data: solicitudesData, error: reqError } = await query;
       if (reqError) throw reqError;
 
-      const { data: statusData, error: statusError } = await supabase.from('estados_solicitud').select('*').order('timestamp', { ascending: true }).limit(20000);
+      // Get only the latest status for each solicitud using a more efficient query
+      // Order by timestamp DESC so the most recent status comes first for each solicitud_id
+      const { data: statusData, error: statusError } = await supabase
+        .from('estados_solicitud')
+        .select('*')
+        .order('timestamp', { ascending: false });
       if (statusError) throw statusError;
 
       const latestStatusMap: Record<string, RequestStatus> = {};
       if (statusData) {
+        // Since we ordered DESC, the first occurrence of each solicitud_id is the latest
         statusData.forEach(event => {
-          latestStatusMap[event.solicitud_id] = event.estado as RequestStatus;
+          if (!latestStatusMap[event.solicitud_id]) {
+            latestStatusMap[event.solicitud_id] = event.estado as RequestStatus;
+          }
         });
       }
+
 
       // If this fetch is no longer the latest, abort updates
       if (currentFetchId !== fetchIdRef.current) return;
@@ -471,11 +481,9 @@ const App: React.FC = () => {
         (payload) => {
           // Skip refetch if this was a local status change (e.g., completed_at update for Entregado)
           const changedId = payload.new?.id || payload.old?.id;
-          if (localStatusChangeRef.current === changedId) {
-            console.log('Realtime: solicitudes changed (local, skipping refetch)');
+          if (localStatusChangesRef.current.has(changedId)) {
             return;
           }
-          console.log('Realtime: solicitudes changed');
           fetchAllData();
         }
       )
@@ -485,23 +493,23 @@ const App: React.FC = () => {
         (payload) => {
           // Skip refetch if this was a local status change (already updated optimistically)
           const changedSolicitudId = payload.new?.solicitud_id;
-          if (localStatusChangeRef.current === changedSolicitudId) {
-            console.log('Realtime: estado changed (local, skipping refetch)');
+          if (localStatusChangesRef.current.has(changedSolicitudId)) {
             return;
           }
-          console.log('Realtime: estado changed (external)');
           fetchAllData();
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
         isRealtimeConnected = status === 'SUBSCRIBED';
       });
 
     // Fallback polling every 30 seconds to ensure data sync
     // This guarantees updates even if realtime fails silently
     const pollingInterval = setInterval(() => {
-      console.log('Polling: Refreshing data (realtime connected:', isRealtimeConnected, ')');
+      // Skip polling if there are recent local changes to prevent reverting optimistic updates
+      if (localStatusChangesRef.current.size > 0) {
+        return;
+      }
       fetchAllData();
     }, 30000);
 
@@ -620,10 +628,11 @@ const App: React.FC = () => {
     if (!internalId || req.status === newStatus) return;
 
     // Track this as a local change to prevent redundant refetch from realtime
-    localStatusChangeRef.current = internalId;
+    localStatusChangesRef.current.add(internalId);
 
     const previousRequests = [...requests];
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
+
     try {
       const { error } = await supabase.from('estados_solicitud').insert([{ solicitud_id: internalId, estado: newStatus, usuario_id: userProfile?.id, timestamp: new Date().toISOString() }]);
       if (error) throw error;
@@ -665,10 +674,11 @@ const App: React.FC = () => {
       addToast("Error al guardar el nuevo estado. Revertido.", "info");
       setRequests(previousRequests);
     } finally {
-      // Clear local change tracker after a short delay to let realtime catch up
+      // Clear this specific change from tracker after polling interval + buffer
+      // Polling runs every 30s, so we need at least 35s to cover one full cycle
       setTimeout(() => {
-        localStatusChangeRef.current = null;
-      }, 1000);
+        localStatusChangesRef.current.delete(internalId);
+      }, 35000);
     }
   };
 
