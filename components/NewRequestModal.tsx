@@ -17,6 +17,7 @@ interface NewRequestModalProps {
 const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave, initialData, advisors = [], currentUser }) => {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const prevIsOpenRef = useRef(false);
 
   const [formData, setFormData] = useState({
     client: '',
@@ -34,7 +35,13 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     logos: [] as LogoFile[]
   });
 
+  // Only reset/populate form when modal transitions from closed to open
   useEffect(() => {
+    const justOpened = isOpen && !prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (!justOpened) return;
+
     if (initialData) {
       setFormData({
         client: initialData.client || '',
