@@ -361,7 +361,7 @@ const App: React.FC = () => {
       // Order by timestamp DESC so the most recent status comes first for each solicitud_id
       const { data: statusData, error: statusError } = await supabase
         .from('estados_solicitud')
-        .select('id, solicitud_id, estado, timestamp, usuario_id, nota')
+        .select('id, solicitud_id, estado, timestamp, usuario_id')
         .order('timestamp', { ascending: false });
       if (statusError) throw statusError;
 
