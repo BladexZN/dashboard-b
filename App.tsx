@@ -349,6 +349,9 @@ const App: React.FC = () => {
       if (currentPage === 'dashboard' || currentPage === 'reportes') {
          const { start, end } = getDateRange(dateFilter);
          query = query.gte('fecha_creacion', start).lte('fecha_creacion', end);
+      } else if (currentPage === 'produccion') {
+         const { start, end } = getDateRange('Este Mes');
+         query = query.gte('fecha_creacion', start).lte('fecha_creacion', end);
       }
       
       const { data: solicitudesData, error: reqError } = await query;
@@ -358,7 +361,7 @@ const App: React.FC = () => {
       // Order by timestamp DESC so the most recent status comes first for each solicitud_id
       const { data: statusData, error: statusError } = await supabase
         .from('estados_solicitud')
-        .select('*')
+        .select('id, solicitud_id, estado, timestamp, usuario_id, nota')
         .order('timestamp', { ascending: false });
       if (statusError) throw statusError;
 
@@ -679,11 +682,11 @@ const App: React.FC = () => {
       addToast("Error al guardar el nuevo estado. Revertido.", "info");
       setRequests(previousRequests);
     } finally {
-      // Clear this specific change from tracker after polling interval + buffer
-      // Polling runs every 30s, so we need at least 35s to cover one full cycle
+      // Clear this specific change from tracker after 2 polling cycles + buffer
+      // Polling runs every 30s, so we need at least 65s to cover two full cycles
       setTimeout(() => {
         localStatusChangesRef.current.delete(internalId);
-      }, 35000);
+      }, 65000);
     }
   };
 
