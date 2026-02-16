@@ -258,7 +258,7 @@ const ProducerCard = memo<{ workload: ProducerWorkload }>(({ workload }) => (
     <div className="mt-3 pt-3 border-t border-white/10 flex justify-between items-center">
       <span className="text-[10px] text-muted-dark">Total activo:</span>
       <span className="text-sm font-bold text-white">
-        {workload.pendiente + workload.enProduccion + workload.correccion + workload.listo}
+        {workload.pendiente + workload.enProduccion + workload.correccion}
       </span>
     </div>
   </motion.div>

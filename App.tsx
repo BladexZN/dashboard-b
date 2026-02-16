@@ -344,7 +344,7 @@ const App: React.FC = () => {
         avatar: u.avatar_url || ''
       })) : [];
 
-      let query = supabase.from('solicitudes').select(`*, asesor:usuarios!asesor_id(id, nombre)`).eq('is_deleted', false).order('fecha_creacion', { ascending: false });
+      let query = supabase.from('solicitudes').select(`*, asesor:usuarios!asesor_id(id, nombre)`).eq('is_deleted', false).order('fecha_creacion', { ascending: false }).limit(5000);
       
       if (currentPage === 'dashboard' || currentPage === 'reportes') {
          const { start, end } = getDateRange(dateFilter);
@@ -375,7 +375,10 @@ const App: React.FC = () => {
           if (chunkError) throw chunkError;
           if (chunkData) statusChunks.push(chunkData);
         }
-        statusData = statusChunks.flat();
+        // Sort globally by timestamp DESC after merging chunks (each chunk is independently sorted)
+        statusData = statusChunks.flat().sort((a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
       }
 
       const latestStatusMap: Record<string, RequestStatus> = {};
