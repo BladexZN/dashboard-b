@@ -537,19 +537,10 @@ const App: React.FC = () => {
 
   const dashboardRequests = useMemo(() => requests, [requests]);
 
-  // Calculate workload per producer for the workload cards
-  // Always filter to current month to stay consistent with the production kanban
+  // Calculate workload per producer for the workload cards (real-time, all solicitudes)
   const producerWorkloads = useMemo((): ProducerWorkload[] => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    const currentMonthRequests = requests.filter(r => {
-      const d = new Date(r.rawDate);
-      return d >= startOfMonth && d <= endOfMonth;
-    });
-
     return productores.map(p => {
-      const boardRequests = currentMonthRequests.filter(r => r.board_number === p.board_number);
+      const boardRequests = requests.filter(r => r.board_number === p.board_number);
       return {
         productor: p,
         pendiente: boardRequests.filter(r => r.status === 'Pendiente').length,
