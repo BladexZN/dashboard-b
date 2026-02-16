@@ -357,13 +357,26 @@ const App: React.FC = () => {
       const { data: solicitudesData, error: reqError } = await query;
       if (reqError) throw reqError;
 
-      // Get only the latest status for each solicitud using a more efficient query
-      // Order by timestamp DESC so the most recent status comes first for each solicitud_id
-      const { data: statusData, error: statusError } = await supabase
-        .from('estados_solicitud')
-        .select('id, solicitud_id, estado, timestamp, usuario_id')
-        .order('timestamp', { ascending: false });
-      if (statusError) throw statusError;
+      // Get only the latest status for each solicitud
+      // Filter by the solicitudes we actually fetched to avoid Supabase's default 1000-row limit
+      const solicitudIds = (solicitudesData || []).map((s: any) => s.id);
+      let statusData: any[] = [];
+      if (solicitudIds.length > 0) {
+        // Batch in chunks of 200 to avoid URL length limits with .in()
+        const chunkSize = 200;
+        const statusChunks: any[][] = [];
+        for (let i = 0; i < solicitudIds.length; i += chunkSize) {
+          const chunk = solicitudIds.slice(i, i + chunkSize);
+          const { data: chunkData, error: chunkError } = await supabase
+            .from('estados_solicitud')
+            .select('id, solicitud_id, estado, timestamp, usuario_id')
+            .in('solicitud_id', chunk)
+            .order('timestamp', { ascending: false });
+          if (chunkError) throw chunkError;
+          if (chunkData) statusChunks.push(chunkData);
+        }
+        statusData = statusChunks.flat();
+      }
 
       const latestStatusMap: Record<string, RequestStatus> = {};
       if (statusData) {
