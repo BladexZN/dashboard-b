@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 
 const CROSS_PROJECT_SECRET = Deno.env.get('CROSS_PROJECT_SECRET')!
-const PROJECT_B_FRONTEND_URL = Deno.env.get('PROJECT_B_FRONTEND_URL') || 'https://euphonious-beijinho-d29489.netlify.app'
+const PROJECT_B_FRONTEND_URL = Deno.env.get('PROJECT_B_FRONTEND_URL') || 'https://dashboard-b.vercel.app'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
