@@ -51,11 +51,9 @@ export interface PlatformResults {
   fallbackMessage?: string;
 }
 
-// Meta Ads Library API (Official)
-const META_ADS_TOKEN = import.meta.env.VITE_META_ADS_TOKEN;
-
-// YouTube Data API v3 (Official)
-const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+// API routes for secure token access (tokens never reach the browser)
+const META_ADS_API = '/api/meta-ads';
+const YOUTUBE_API = '/api/youtube-search';
 
 // Enabled platforms (free/working)
 // TikTok removed - direct search blocked, use Creative Center links in Trends tab
@@ -210,81 +208,45 @@ export const DEFAULT_YOUTUBE_FILTERS: YouTubeFilters = {
   strictMatch: true, // Only show videos that contain the keyword
 };
 
-// Search Meta Ads using official API with filters and pagination
+// Search Meta Ads via server-side API route (token protected)
 async function searchMetaAdsAPI(keyword: string, filters: MetaAdsFilters = DEFAULT_META_FILTERS): Promise<any[]> {
   console.log(`[AdsLab] Searching Meta Ads for: ${keyword}`, filters);
 
-  if (!META_ADS_TOKEN) {
-    throw new Error('Meta Ads token not configured');
-  }
-
-  // Properly format countries as JSON array
-  const countriesArray = JSON.stringify(filters.countries);
-
-  const params = new URLSearchParams({
-    access_token: META_ADS_TOKEN,
-    search_terms: keyword,
-    ad_active_status: filters.adStatus,
-    fields: 'id,ad_creative_bodies,ad_creative_link_titles,page_name,publisher_platforms,ad_delivery_start_time,ad_delivery_stop_time,ad_snapshot_url',
-    limit: '50' // Per page limit
-  });
-
-  // Add media_type if not ALL
-  if (filters.mediaType !== 'ALL') {
-    params.append('media_type', filters.mediaType);
-  }
-
-  const baseUrl = 'https://graph.facebook.com/v23.0/ads_archive';
-  const countriesParam = `ad_reached_countries=${encodeURIComponent(countriesArray)}`;
-
-  // Add language filter if not 'all'
-  const languageParam = filters.language && filters.language !== 'all'
-    ? `&languages=${encodeURIComponent(JSON.stringify([filters.language]))}`
-    : '';
-
-  let allResults: any[] = [];
-  let nextUrl: string | null = `${baseUrl}?${params.toString()}&${countriesParam}${languageParam}`;
-  let pageCount = 0;
-  const maxPages = 5; // Get up to 250 results (5 pages x 50) before deduplication
-
   try {
-    while (nextUrl && pageCount < maxPages) {
-      console.log(`[AdsLab] Meta Ads page ${pageCount + 1}...`);
+    const response = await fetch(META_ADS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        keyword,
+        filters: {
+          adStatus: filters.adStatus,
+          countries: filters.countries,
+          mediaType: filters.mediaType,
+          language: filters.language,
+          maxPages: 5,
+        },
+      }),
+    });
 
-      const response = await fetch(nextUrl);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`[AdsLab] Meta Ads API error:`, errorData);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error(`[AdsLab] Meta Ads API error:`, errorData);
-
-        if (errorData.error?.code === 190) {
-          throw new Error('Token de Meta Ads expirado o inválido. Verifica VITE_META_ADS_TOKEN.');
-        }
-        if (errorData.error?.code === 100) {
-          throw new Error('Parámetros inválidos en la búsqueda de Meta Ads.');
-        }
-        if (errorData.error?.code === 4) {
-          throw new Error('Límite de requests alcanzado. Intenta de nuevo en unos minutos.');
-        }
-
-        throw new Error(errorData.error?.message || `Meta Ads API error: ${response.status}`);
+      if (errorData.code === 190) {
+        throw new Error('Token de Meta Ads expirado o inválido.');
+      }
+      if (errorData.code === 100) {
+        throw new Error('Parámetros inválidos en la búsqueda de Meta Ads.');
+      }
+      if (errorData.code === 4) {
+        throw new Error('Límite de requests alcanzado. Intenta de nuevo en unos minutos.');
       }
 
-      const data = await response.json();
-      const pageResults = data.data || [];
-      allResults = [...allResults, ...pageResults];
-
-      console.log(`[AdsLab] Page ${pageCount + 1}: ${pageResults.length} results (total: ${allResults.length})`);
-
-      // Check for next page
-      nextUrl = data.paging?.next || null;
-      pageCount++;
-
-      // Small delay between pages to avoid rate limiting
-      if (nextUrl && pageCount < maxPages) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
+      throw new Error(errorData.error || `Meta Ads API error: ${response.status}`);
     }
+
+    const data = await response.json();
+    const allResults = data.data || [];
 
     console.log(`[AdsLab] Total Meta Ads results: ${allResults.length}`);
     return allResults;
@@ -294,111 +256,32 @@ async function searchMetaAdsAPI(keyword: string, filters: MetaAdsFilters = DEFAU
   }
 }
 
-// Search YouTube using official API with statistics, filters and pagination
+// Search YouTube via server-side API route (API key protected)
 async function searchYouTubeAPI(keyword: string, filters: YouTubeFilters = DEFAULT_YOUTUBE_FILTERS): Promise<any[]> {
   console.log(`[AdsLab] Searching YouTube for: ${keyword}`, filters);
 
-  if (!YOUTUBE_API_KEY) {
-    throw new Error('YouTube API key not configured');
-  }
-
-  // Use quotes for exact phrase matching
-  const searchQuery = filters.strictMatch ? `"${keyword}"` : `${keyword} shorts`;
-
-  let allItems: any[] = [];
-  let nextPageToken: string | null = null;
-  let pageCount = 0;
-  const maxPages = 2; // Get up to 100 results (2 pages x 50)
-
-  // Step 1: Search for videos with pagination
-  while (pageCount < maxPages) {
-    const searchParams = new URLSearchParams({
-      part: 'snippet',
-      q: searchQuery,
-      type: 'video',
-      videoDuration: 'short',
-      maxResults: '50',
-      order: filters.orderBy,
-      regionCode: filters.country,
-      relevanceLanguage: getLanguageForCountry(filters.country),
-      key: YOUTUBE_API_KEY,
-    });
-
-    if (nextPageToken) {
-      searchParams.append('pageToken', nextPageToken);
-    }
-
-    console.log(`[AdsLab] YouTube page ${pageCount + 1}...`);
-
-    const searchResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?${searchParams}`
-    );
-
-    if (!searchResponse.ok) {
-      const errorData = await searchResponse.json().catch(() => ({}));
-      console.error(`[AdsLab] YouTube Search API error:`, errorData);
-      throw new Error(errorData.error?.message || 'YouTube API error');
-    }
-
-    const searchData = await searchResponse.json();
-    const pageItems = searchData.items || [];
-    allItems = [...allItems, ...pageItems];
-
-    console.log(`[AdsLab] Page ${pageCount + 1}: ${pageItems.length} results (total: ${allItems.length})`);
-
-    nextPageToken = searchData.nextPageToken || null;
-    pageCount++;
-
-    if (!nextPageToken) break;
-
-    // Small delay between pages
-    if (pageCount < maxPages) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  }
-
-  if (allItems.length === 0) return [];
-
-  // Step 2: Get video IDs
-  const videoIds = allItems
-    .filter((item: any) => item.id?.videoId)
-    .map((item: any) => item.id.videoId)
-    .join(',');
-
-  // Step 3: Get video statistics (API supports up to 50 IDs per request)
-  const statsMap = new Map<string, any>();
-  const idChunks = videoIds.split(',');
-
-  for (let i = 0; i < idChunks.length; i += 50) {
-    const chunkIds = idChunks.slice(i, i + 50).join(',');
-
-    const statsParams = new URLSearchParams({
-      part: 'statistics,contentDetails',
-      id: chunkIds,
-      key: YOUTUBE_API_KEY,
-    });
-
-    const statsResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?${statsParams}`
-    );
-
-    if (statsResponse.ok) {
-      const statsData = await statsResponse.json();
-      (statsData.items || []).forEach((stat: any) => {
-        statsMap.set(stat.id, stat);
-      });
-    }
-  }
-
-  // Step 4: Merge search results with statistics
-  const enrichedItems = allItems.map((item: any) => {
-    const stats = statsMap.get(item.id?.videoId);
-    return {
-      ...item,
-      statistics: stats?.statistics || {},
-      contentDetails: stats?.contentDetails || {},
-    };
+  const response = await fetch(YOUTUBE_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      keyword,
+      filters: {
+        orderBy: filters.orderBy,
+        country: filters.country,
+        strictMatch: filters.strictMatch,
+        maxPages: 2,
+      },
+    }),
   });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error(`[AdsLab] YouTube API error:`, errorData);
+    throw new Error(errorData.error || 'YouTube API error');
+  }
+
+  const data = await response.json();
+  const enrichedItems = data.items || [];
 
   console.log(`[AdsLab] Total YouTube results: ${enrichedItems.length}`);
   return enrichedItems;
